@@ -136,11 +136,25 @@ const typography = {
       letter-spacing: -0.025em;
       line-height: 1.25;
     `,
+    'EN-Large': css`
+      font-family: 'Lugati v1', sans-serif;
+      font-size: 16px;
+      font-weight: 400;
+      letter-spacing: 1px;
+      line-height: 1.28;
+    `,
     'EN-Midium': css`
       font-family: 'Lugati v1', sans-serif;
       font-size: 14px;
-      font-weight: 700;
-      letter-spacing: 0;
+      font-weight: 400;
+      letter-spacing: 1px;
+      line-height: 1.28;
+    `,
+    'EN-Small': css`
+      font-family: 'Lugati v1', sans-serif;
+      font-size: 12px;
+      font-weight: 400;
+      letter-spacing: 1px;
       line-height: 1.28;
     `,
   },

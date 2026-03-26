@@ -42,5 +42,12 @@ export const GlobalStyle = createGlobalStyle`
 
   input, textarea {
     font-family: inherit;
+    border: none;
+    background-color: inherit;
+    outline: none;
+  }
+  img{
+    width: 100%;
+    vertical-align: top;
   }
 `;

@@ -1,73 +1,87 @@
+import { useState } from 'react';
 import styled from 'styled-components';
-import { tokens } from '../../styles/theme';
+import { FaStar, FaRegStar } from 'react-icons/fa';
 
 function BookmarkCard({ bookmark, currentUserId, onEdit, onDelete, onFavorite }) {
   const isOwner = bookmark.user_id === currentUserId;
   const isShared = bookmark.visibility === 'shared';
+  const [memoExpanded, setMemoExpanded] = useState(false);
+
+  const isLongMemo = bookmark.description && bookmark.description.length > 63;
 
   return (
     <Card>
-      <Thumbnail href={bookmark.url} target="_blank" rel="noopener noreferrer">
+      <Thumb href={bookmark.url} target="_blank" rel="noopener noreferrer">
         {bookmark.thumbnail_url ? (
-          <ThumbImg src={bookmark.thumbnail_url} alt={bookmark.title} />
+          <ThumbImg src={bookmark.thumbnail_url} alt="사이트 썸네일" />
         ) : (
-          <ThumbPlaceholder>{getDomain(bookmark.url)}</ThumbPlaceholder>
+          <ThumbPlaceholder>{bookmark.title}</ThumbPlaceholder>
         )}
-        <VisibilityBadge $shared={isShared}>{isShared ? '팀 공유' : '나만 보기'}</VisibilityBadge>
-
-        <FavoriteButton
-          onClick={(e) => {
-            e.preventDefault();
-            onFavorite(bookmark.id, bookmark.is_favorited);
-          }}
-          $active={bookmark.is_favorited}
-        >
-          {bookmark.is_favorited ? '♥' : '♡'}
-        </FavoriteButton>
-      </Thumbnail>
+        <ThumbTop>
+          <VisibilityBadge $shared={isShared}>{isShared ? 'Teams' : 'Private'}</VisibilityBadge>
+          <FavBtn
+            onClick={(e) => {
+              e.preventDefault();
+              onFavorite(bookmark.id, bookmark.is_favorited);
+            }}
+            $active={bookmark.is_favorited}
+          >
+            {bookmark.is_favorited ? <FaStar /> : <FaRegStar />}
+          </FavBtn>
+        </ThumbTop>
+      </Thumb>
 
       <Body>
-        <SiteRow>
-          <Favicon
-            src={`https://www.google.com/s2/favicons?domain=${getDomain(bookmark.url)}&sz=32`}
-            alt=""
-            onError={(e) => (e.target.style.display = 'none')}
-          />
+        <InfoContents>
           <Domain>{getDomain(bookmark.url)}</Domain>
-        </SiteRow>
+          <TextInner>
+            <Title href={bookmark.url} target="_blank" rel="noopener noreferrer">
+              {bookmark.title}
+            </Title>
+            {bookmark.description && (
+              <MemoWrap>
+                <Memo $expanded={memoExpanded}>{bookmark.description}</Memo>
+                {isLongMemo && (
+                  <MoreBtn
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setMemoExpanded((prev) => !prev);
+                    }}
+                    type="button"
+                  >
+                    {memoExpanded ? '접기' : '더보기'}
+                  </MoreBtn>
+                )}
+              </MemoWrap>
+            )}
+          </TextInner>
 
-        <Title href={bookmark.url} target="_blank" rel="noopener noreferrer">
-          {bookmark.title}
-        </Title>
-
-        {bookmark.description && <Memo>{bookmark.description}</Memo>}
-
-        {bookmark.tags?.length > 0 && (
-          <TagList>
-            {bookmark.tags.map((tag) => (
-              <Tag key={tag} $tag={tag}>
-                {tag}
-              </Tag>
-            ))}
-          </TagList>
-        )}
+          {bookmark.tags?.length > 0 && (
+            <TagList>
+              {bookmark.tags.map((tag) => (
+                <TagChip key={tag} $tag={tag}>
+                  {tag}
+                </TagChip>
+              ))}
+            </TagList>
+          )}
+        </InfoContents>
 
         <Footer>
           <Who>
             {bookmark.profiles?.avatar_url ? (
-              <AuthorAvatar src={bookmark.profiles.avatar_url} alt="" />
+              <AuthorImg src={bookmark.profiles.avatar_url} alt="" />
             ) : (
               <AuthorInitial>{bookmark.profiles?.name?.[0] ?? '?'}</AuthorInitial>
             )}
-            <AuthorName>{isOwner ? '나' : (bookmark.profiles?.name ?? '알 수 없음')}</AuthorName>
+            <AuthorName>{isOwner ? bookmark.profiles?.name : (bookmark.profiles?.name ?? '알 수 없음')}</AuthorName>
           </Who>
-
           {isOwner && (
             <Actions>
-              <ActionButton onClick={() => onEdit(bookmark)}>편집</ActionButton>
-              <ActionButton $danger onClick={() => onDelete(bookmark.id)}>
+              <ActionBtn onClick={() => onEdit(bookmark)}>편집</ActionBtn>
+              <ActionBtn $danger onClick={() => onDelete(bookmark.id)}>
                 삭제
-              </ActionButton>
+              </ActionBtn>
             </Actions>
           )}
         </Footer>
@@ -85,24 +99,28 @@ function getDomain(url) {
 }
 
 const Card = styled.article`
-  border: 1px solid ${({ theme }) => theme.colors.border.default};
-  border-radius: ${tokens.radius.lg};
+  display: flex;
+  flex-direction: column;
+  background-color: ${({ theme }) => theme.colors.surface.primary};
+  border: 1px solid ${({ theme }) => theme.colors.border.secondary};
+  border-radius: ${({ theme }) => theme.radius[4]};
   overflow: hidden;
   transition:
-    box-shadow ${tokens.transition.normal},
-    transform ${tokens.transition.normal};
-
+    box-shadow ${({ theme }) => theme.transition.normal},
+    transform ${({ theme }) => theme.transition.normal};
   &:hover {
-    box-shadow: ${({ theme }) => theme.shadows.card};
+    box-shadow: ${({ theme }) => theme.shadows[2]};
     transform: translateY(-2px);
   }
 `;
 
-const Thumbnail = styled.a`
+const Thumb = styled.a`
   display: block;
   position: relative;
-  height: 160px;
+  height: 180px;
+  background-color: ${({ theme }) => theme.colors.surface.secondary};
   overflow: hidden;
+  border-bottom: 1px solid ${({ theme }) => theme.colors.border.secondary};
 `;
 
 const ThumbImg = styled.img`
@@ -111,25 +129,8 @@ const ThumbImg = styled.img`
   object-fit: cover;
 `;
 
-const FavoriteButton = styled.button`
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  font-size: 18px;
-  line-height: 1;
-  color: ${({ $active }) => ($active ? '#E05050' : 'rgba(255,255,255,0.8)')};
-  transition:
-    color ${tokens.transition.fast},
-    transform ${tokens.transition.fast};
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-
-  &:hover {
-    transform: scale(1.2);
-    color: #e05050;
-  }
-`;
-
 const ThumbPlaceholder = styled.div`
+  ${({ theme }) => theme.typography.Body['KR-Small']}
   width: 100%;
   height: 100%;
   display: flex;
@@ -138,125 +139,187 @@ const ThumbPlaceholder = styled.div`
   color: ${({ theme }) => theme.colors.text.contrast};
 `;
 
-const VisibilityBadge = styled.span`
+const ThumbTop = styled.div`
   position: absolute;
-  top: 10px;
-  right: 10px;
-  padding: 3px 9px;
-  border-radius: ${tokens.radius.full};
-`;
-
-const Body = styled.div`
-  padding: ${tokens.spacing[14]} ${tokens.spacing[16]} ${tokens.spacing[16]};
-  display: flex;
-  flex-direction: column;
-  gap: ${tokens.spacing[8]};
-`;
-
-const SiteRow = styled.div`
+  top: 12px;
+  left: 12px;
+  right: 12px;
   display: flex;
   align-items: center;
-  gap: ${tokens.spacing[6]};
+  justify-content: space-between;
 `;
 
-const Favicon = styled.img`
-  width: 14px;
-  height: 14px;
-  border-radius: 3px;
-  flex-shrink: 0;
+const VisibilityBadge = styled.span`
+  ${({ theme }) => theme.typography.Label['EN-Small']}
+  padding:  ${({ theme }) => theme.spacing[1]}  ${({ theme }) => theme.spacing[3]} 2px;
+  border-radius: ${({ theme }) => theme.radius.full};
+  background-color: ${({ $shared }) => ($shared ? '#34c759' : '#96CEFF')};
+  color: ${({ theme }) => theme.colors.text.invert};
 `;
 
-const Domain = styled.span`
-  color: ${({ theme }) => theme.colors.text.contrast};
-`;
-
-const Title = styled.a`
-  color: ${({ theme }) => theme.colors.text.primary};
-  line-height: 1.4;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+const FavBtn = styled.button`
+  width: 24px;
+  height: 24px;
+  font-size: 24px;
+  color: ${({ $active }) => ($active ? '#FFD700' : '#BFBFBF')};
+  transition:
+    transform ${({ theme }) => theme.transition.fast},
+    color ${({ theme }) => theme.transition.fast};
 
   &:hover {
-    text-decoration: underline;
+    transform: scale(1.2);
+    color: #ffd700;
   }
 `;
 
-const Memo = styled.p`
-  color: ${({ theme }) => theme.colors.text.secondary};
-  line-height: 1.5;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+const Body = styled.div`
+  flex: 1;
+  padding: ${({ theme }) => theme.spacing[2]} ${({ theme }) => theme.spacing[4]} ${({ theme }) => theme.spacing[1]};
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 `;
 
+const InfoContents = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing[2]};
+  padding-bottom: ${({ theme }) => theme.spacing[4]};
+`;
+
+const Domain = styled.span`
+  ${({ theme }) => theme.typography.Caption['KR']}
+  color: ${({ theme }) => theme.colors.text.contrast};
+`;
+
+const TextInner = styled.div`
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing[1]};
+`;
+
+const Title = styled.a`
+  ${({ theme }) => theme.typography.Label['KR-Large']}
+  color: ${({ theme }) => theme.colors.text.primary};
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-decoration-line: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 5px;
+  padding-bottom: 2px;
+
+  &:hover {
+    text-decoration-color: ${({ theme }) => theme.colors.text.secondary};
+  }
+`;
+
+const MemoWrap = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing[2]};
+`;
+
+const Memo = styled.p`
+  ${({ theme }) => theme.typography.Body['KR-Small']}
+  color: ${({ theme }) => theme.colors.text.contrast};
+  width: 100%;
+  display: -webkit-box !important;
+  -webkit-line-clamp: ${({ $expanded }) => ($expanded ? 'unset' : 2)};
+  -webkit-box-orient: vertical;
+  overflow: ${({ $expanded }) => ($expanded ? 'visible' : 'hidden')};
+  white-space: pre-wrap;
+  word-break: break-all;
+`;
+
+const MoreBtn = styled.button`
+  display: flex;
+  justify-content: flex-end;
+  ${({ theme }) => theme.typography.Caption['KR']}
+  color: #bfbfbf;
+  background: none;
+  border: none;
+  padding: 0;
+  transition: color ${({ theme }) => theme.transition.fast};
+
+  &:hover {
+    color: ${({ theme }) => theme.colors.text.primary};
+  }
+`;
 const TagList = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: ${tokens.spacing[4]};
+  gap: ${({ theme }) => theme.spacing[2]};
 `;
 
-const Tag = styled.span`
-  padding: 3px 9px;
-  border-radius: ${tokens.radius.full};
-  color: ${({ theme, $tag }) => theme.colors.tag[$tag]?.text ?? theme.colors.text.secondary};
+const TagChip = styled.span`
+  ${({ theme }) => theme.typography.Label['EN-Small']}
+  padding: ${({ theme }) => theme.spacing[1]} ${({ theme }) => theme.spacing[3]};
+  border-radius: ${({ theme }) => theme.radius.full};
+  background-color: ${({ theme, $tag }) => theme.colors.tag[$tag]?.bg ?? theme.colors.surface.secondary};
+  color: ${({ theme, $tag }) => theme.colors.tag[$tag]?.text ?? theme.colors.text.contrast};
 `;
 
 const Footer = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top: ${tokens.spacing[8]};
-  border-top: 1px solid ${({ theme }) => theme.colors.border.default};
-  margin-top: ${tokens.spacing[4]};
+  padding: ${({ theme }) => theme.spacing[3]} ${({ theme }) => theme.spacing[2]};
+  border-top: 1px solid ${({ theme }) => theme.colors.border.secondary};
 `;
 
 const Who = styled.div`
   display: flex;
   align-items: center;
-  gap: ${tokens.spacing[6]};
+  gap: ${({ theme }) => theme.spacing[2]};
 `;
 
-const AuthorAvatar = styled.img`
-  width: 20px;
-  height: 20px;
-  border-radius: ${tokens.radius.full};
+const AuthorImg = styled.img`
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
   object-fit: cover;
 `;
 
 const AuthorInitial = styled.div`
-  width: 20px;
-  height: 20px;
-  border-radius: ${tokens.radius.full};
+  ${({ theme }) => theme.typography.Caption['KR']}
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: ${({ theme }) => theme.colors.surface.secondary};
   display: flex;
   align-items: center;
   justify-content: center;
-  color: ${({ theme }) => theme.colors.text.secondary};
+  color: ${({ theme }) => theme.colors.text.contrast};
 `;
 
 const AuthorName = styled.span`
+  ${({ theme }) => theme.typography.Caption['KR']}
   color: ${({ theme }) => theme.colors.text.contrast};
 `;
 
 const Actions = styled.div`
   display: flex;
-  gap: ${tokens.spacing[4]};
+  gap: ${({ theme }) => theme.spacing[1]};
   opacity: 0;
+  transition: opacity ${({ theme }) => theme.transition.fast};
 
   ${Card}:hover & {
     opacity: 1;
   }
 `;
 
-const ActionButton = styled.button`
+const ActionBtn = styled.button`
+  ${({ theme }) => theme.typography.Label['KR-Small']}
   padding: 3px 8px;
-  border-radius: ${tokens.radius.sm};
-  color: ${({ theme, $danger }) => ($danger ? '#E05050' : theme.colors.text.secondary)};
-  transition: background-color ${tokens.transition.fast};
+  border-radius: ${({ theme }) => theme.radius[1]};
+  color: ${({ $danger }) => ($danger ? '#ff383c' : 'inherit')};
+  color: ${({ theme, $danger }) => ($danger ? theme.colors.text.negative : theme.colors.text.contrast)};
+  transition: background-color ${({ theme }) => theme.transition.fast};
 
   &:hover {
+    background-color: ${({ theme }) => theme.colors.surface.secondary};
   }
 `;
 

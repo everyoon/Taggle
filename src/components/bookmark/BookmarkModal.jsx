@@ -1,16 +1,39 @@
 import { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { tokens } from '../../styles/theme';
 import { fetchLinkPreview } from '../../hooks/useLinkPreview';
+import Button from '../common/Button';
+import { MdClose, MdPerson, MdGroups } from 'react-icons/md';
 
-const TAGS = ['레퍼런스', 'UI/UX', 'Color', 'Icon', 'Typography', 'Motion', 'Illustration', '3D', 'Branding', 'Tool'];
+// Mock data for teams
+const MOCK_TEAMS = [
+  { id: 1, name: '돼지원정단', selected: false },
+  { id: 2, name: '피그마 싫어', selected: false },
+  { id: 3, name: '애옹애옹애옹', selected: false },
+];
+
+const TAGS = [
+  'UIUX',
+  'Color',
+  'Icon',
+  'Typography',
+  'AI',
+  'Branding',
+  'Motion',
+  'Figma',
+  'Photoshop',
+  'Illustration',
+  'Work',
+  'Ref',
+  'Etc',
+];
 
 const INITIAL_FORM = {
   url: '',
   title: '',
   description: '',
   tags: [],
-  visibility: 'shared',
+  visibility: 'private',
+  selectedTeams: [],
 };
 
 function BookmarkModal({ open, onClose, onSubmit, editTarget }) {
@@ -19,7 +42,6 @@ function BookmarkModal({ open, onClose, onSubmit, editTarget }) {
   const [error, setError] = useState('');
   const [fetching, setFetching] = useState(false);
 
-  // 편집 모드면 기존 데이터 채우기
   useEffect(() => {
     if (editTarget) {
       setForm({
@@ -28,17 +50,13 @@ function BookmarkModal({ open, onClose, onSubmit, editTarget }) {
         description: editTarget.description ?? '',
         tags: editTarget.tags ?? [],
         visibility: editTarget.visibility,
+        selectedTeams: editTarget.selectedTeams ?? [],
       });
     } else {
       setForm(INITIAL_FORM);
     }
     setError('');
   }, [editTarget, open]);
-
-  // 배경 클릭으로 닫기
-  const handleOverlayClick = (e) => {
-    if (e.target === e.currentTarget) onClose();
-  };
 
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -51,9 +69,31 @@ function BookmarkModal({ open, onClose, onSubmit, editTarget }) {
     }));
   };
 
+  const toggleTeamSelection = (teamId) => {
+    setForm((prev) => ({
+      ...prev,
+      selectedTeams: prev.selectedTeams.includes(teamId)
+        ? prev.selectedTeams.filter((id) => id !== teamId)
+        : [...prev.selectedTeams, teamId],
+    }));
+  };
+
+  const handleUrlBlur = async () => {
+    if (!form.url || !form.url.startsWith('http')) return;
+    if (form.title) return;
+    setFetching(true);
+    const { title, thumbnail_url } = await fetchLinkPreview(form.url);
+    setForm((prev) => ({
+      ...prev,
+      title: title || prev.title,
+      thumbnail_url: thumbnail_url || prev.thumbnail_url,
+    }));
+    setFetching(false);
+  };
+
   const handleSubmit = async () => {
     if (!form.url.trim()) return setError('URL을 입력해주세요.');
-    if (!form.title.trim()) return setError('제목을 입력해주세요.');
+    if (form.tags.length === 0) return setError('태그를 하나 이상 선택해주세요.');
 
     setLoading(true);
     setError('');
@@ -69,30 +109,20 @@ function BookmarkModal({ open, onClose, onSubmit, editTarget }) {
 
   if (!open) return null;
 
-  // URL 입력 필드 아래에 onBlur 핸들러 추가
-  const handleUrlBlur = async () => {
-    if (!form.url || !form.url.startsWith('http')) return;
-    if (form.title) return; // 이미 제목 있으면 덮어쓰지 않음
-
-    setFetching(true);
-    const { title, thumbnail_url } = await fetchLinkPreview(form.url);
-    setForm((prev) => ({
-      ...prev,
-      title: title || prev.title,
-      thumbnail_url: thumbnail_url || prev.thumbnail_url,
-    }));
-    setFetching(false);
-  };
+  const isEdit = !!editTarget;
 
   return (
-    <Overlay onClick={handleOverlayClick}>
+    <Overlay onClick={(e) => e.target === e.currentTarget && onClose()}>
       <Modal>
         <ModalHeader>
-          <ModalTitle>{editTarget ? '북마크 편집' : '북마크 추가'}</ModalTitle>
-          <CloseButton onClick={onClose}>✕</CloseButton>
+          <ModalTitle>{isEdit ? '북마크 수정하기' : '북마크 추가하기'}</ModalTitle>
+          <CloseButton onClick={onClose}>
+            <MdClose />
+          </CloseButton>
         </ModalHeader>
 
         <ModalBody>
+          {error && <ErrorMsg>{error}</ErrorMsg>}
           <Field>
             <Label>
               URL <Required>*</Required>
@@ -106,29 +136,32 @@ function BookmarkModal({ open, onClose, onSubmit, editTarget }) {
               autoFocus
             />
           </Field>
+          {isEdit && (
+            <Field>
+              <Label>
+                Title <Required>*</Required>
+              </Label>
+              <Input
+                type="text"
+                value={form.title}
+                onChange={(e) => handleChange('title', e.target.value)}
+                disabled={fetching}
+              />
+            </Field>
+          )}
           <Field>
-            <Label>
-              제목 <Required>*</Required>
-            </Label>
-            <Input
-              type="text"
-              placeholder={fetching ? '사이트 정보 불러오는 중...' : '사이트 이름이나 간단한 제목'}
-              value={form.title}
-              onChange={(e) => handleChange('title', e.target.value)}
-              disabled={fetching}
-            />
-          </Field>
-          <Field>
-            <Label>메모</Label>
+            <Label>Desc</Label>
             <Textarea
-              placeholder="왜 저장했는지, 어떻게 활용하면 좋은지 적어주세요"
+              placeholder="사이트의 용도나 주요 특징을 적어두면 나중에 찾기 편해요."
               value={form.description}
               onChange={(e) => handleChange('description', e.target.value)}
-              rows={3}
+              rows={4}
             />
           </Field>
           <Field>
-            <Label>태그</Label>
+            <Label>
+              Tags <Required>* 1개 이상 선택해주세요.</Required>
+            </Label>
             <TagGrid>
               {TAGS.map((tag) => (
                 <TagChip
@@ -144,37 +177,59 @@ function BookmarkModal({ open, onClose, onSubmit, editTarget }) {
             </TagGrid>
           </Field>
           <Field>
-            <Label>공개 범위</Label>
-            <VisibilityRow>
-              <VisibilityOption
-                $active={form.visibility === 'shared'}
-                onClick={() => handleChange('visibility', 'shared')}
-                type="button"
-              >
-                <VisibilityTitle>팀 공유</VisibilityTitle>
-                <VisibilityDesc>팀원 모두에게 보여요</VisibilityDesc>
-              </VisibilityOption>
-              <VisibilityOption
-                $active={form.visibility === 'private'}
-                onClick={() => handleChange('visibility', 'private')}
-                type="button"
-              >
-                <VisibilityTitle>나만 보기</VisibilityTitle>
-                <VisibilityDesc>나에게만 보여요</VisibilityDesc>
-              </VisibilityOption>
-            </VisibilityRow>
+            <Label>
+              Privacy Settings <Required>*</Required>
+            </Label>
+            <VisibilityContainer>
+              <VisibilityTabList>
+                <VisibilityTab
+                  $active={form.visibility === 'private'}
+                  onClick={() => handleChange('visibility', 'private')}
+                  type="button"
+                >
+                  <MdPerson size={20} />
+                  Private
+                </VisibilityTab>
+                <VisibilityTab
+                  $active={form.visibility === 'shared'}
+                  onClick={() => handleChange('visibility', 'shared')}
+                  type="button"
+                >
+                  <MdGroups size={20} />
+                  Teams
+                </VisibilityTab>
+              </VisibilityTabList>
+              {form.visibility === 'shared' && (
+                <TeamSelector>
+                  <TeamSelectorTitle>팀선택</TeamSelectorTitle>
+                  <TeamList>
+                    {MOCK_TEAMS.map((team) => (
+                      <TeamItem key={team.id}>
+                        <Checkbox
+                          type="checkbox"
+                          checked={form.selectedTeams.includes(team.id)}
+                          onChange={() => toggleTeamSelection(team.id)}
+                        />
+                        <TeamName>{team.name}</TeamName>
+                      </TeamItem>
+                    ))}
+                  </TeamList>
+                </TeamSelector>
+              )}
+            </VisibilityContainer>
+            <VisibilityHint>공개 범위는 언제든지 수정할 수 있습니다.</VisibilityHint>
           </Field>
-
-          {error && <ErrorMsg>{error}</ErrorMsg>}
         </ModalBody>
-
         <ModalFooter>
-          <CancelButton onClick={onClose} type="button">
-            취소
-          </CancelButton>
-          <SubmitButton onClick={handleSubmit} disabled={loading} type="button">
-            {loading ? '저장 중...' : editTarget ? '수정 저장' : '추가'}
-          </SubmitButton>
+          <Button
+            onClick={handleSubmit}
+            disabled={loading}
+            type="button"
+            $invert
+            style={{ width: '100%', height: '48px' }}
+          >
+            {loading ? '저장 중...' : isEdit ? '수정하기' : '추가하기'}
+          </Button>
         </ModalFooter>
       </Modal>
     </Overlay>
@@ -184,204 +239,232 @@ function BookmarkModal({ open, onClose, onSubmit, editTarget }) {
 const Overlay = styled.div`
   position: fixed;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: ${({ theme }) => theme.colors.surface.modal_background};
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 200;
-  padding: ${tokens.spacing[20]};
+  padding: ${({ theme }) => theme.spacing[5]};
 `;
 
 const Modal = styled.div`
-  border: 1px solid ${({ theme }) => theme.colors.border.default};
-  border-radius: ${tokens.radius.lg};
+  background-color: ${({ theme }) => theme.colors.surface.primary};
+  border: 1px solid ${({ theme }) => theme.colors.border.secondary};
+  border-radius: ${({ theme }) => theme.radius[4]};
   width: 100%;
   max-width: 480px;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  box-shadow: ${({ theme }) => theme.shadows.modal};
+  box-shadow: ${({ theme }) => theme.shadows[3]};
 `;
 
 const ModalHeader = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${tokens.spacing[20]} ${tokens.spacing[24]};
-  border-bottom: 1px solid ${({ theme }) => theme.colors.border.default};
+  padding: ${({ theme }) => theme.spacing[2]} ${({ theme }) => theme.spacing[4]};
+  border-bottom: 1px solid ${({ theme }) => theme.colors.border.secondary};
   flex-shrink: 0;
 `;
 
 const ModalTitle = styled.h2`
+  ${({ theme }) => theme.typography.Title['KR-Small']}
   color: ${({ theme }) => theme.colors.text.primary};
 `;
 
 const CloseButton = styled.button`
-  font-size: 16px;
-  color: ${({ theme }) => theme.colors.text.tertiary};
-  padding: ${tokens.spacing[4]};
-  border-radius: ${tokens.radius.sm};
-  transition:
-    color ${tokens.transition.fast},
-    background-color ${tokens.transition.fast};
-
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: ${({ theme }) => theme.colors.text.primary};
+  padding: ${({ theme }) => theme.spacing[3]};
+  transition: background-color ${({ theme }) => theme.transition.fast};
+  svg {
+    font-size: 24px;
+    color: inherit;
+  }
   &:hover {
-    color: ${({ theme }) => theme.colors.text.primary};
+    color: ${({ theme }) => theme.colors.text.contrast};
   }
 `;
 
 const ModalBody = styled.div`
-  padding: ${tokens.spacing[24]};
+  padding: ${({ theme }) => theme.spacing[4]} ${({ theme }) => theme.spacing[5]} ${({ theme }) => theme.spacing[6]};
   display: flex;
   flex-direction: column;
-  gap: ${tokens.spacing[20]};
+  gap: ${({ theme }) => theme.spacing[3]};
   overflow-y: auto;
 `;
 
 const Field = styled.div`
   display: flex;
   flex-direction: column;
-  gap: ${tokens.spacing[8]};
+  gap: ${({ theme }) => theme.spacing[1]};
 `;
 
 const Label = styled.label`
-  color: ${({ theme }) => theme.colors.text.secondary};
+  padding-left: ${({ theme }) => theme.spacing[2]};
+  ${({ theme }) => theme.typography.Label['KR-Midium']}
+  color: ${({ theme }) => theme.colors.text.primary};
 `;
 
 const Required = styled.span`
-  color: #e05050;
+  ${({ theme }) => theme.typography.Caption['KR']}
+  color: ${({ theme }) => theme.colors.text.negative};
 `;
 
 const Input = styled.input`
-  height: 38px;
-  padding: 0 ${tokens.spacing[12]};
-  border-radius: ${tokens.radius.md};
-  border: 1px solid ${({ theme }) => theme.colors.border.default};
+  ${({ theme }) => theme.typography.Body['KR-Small']}
+  padding: ${({ theme }) => theme.spacing[3]};
+  border-radius: ${({ theme }) => theme.radius[2]};
+  border: 1px solid ${({ theme }) => theme.colors.border.secondary};
   color: ${({ theme }) => theme.colors.text.primary};
-  outline: none;
-  transition: border-color ${tokens.transition.fast};
+  transition: border-color ${({ theme }) => theme.transition.fast};
 
   &::placeholder {
-    color: ${({ theme }) => theme.colors.text.tertiary};
+    color: ${({ theme }) => theme.colors.text.contrast};
+    opacity: 0.4;
   }
 
   &:focus {
-    border-color: ${({ theme }) => theme.colors.border.strong};
+    border-color: ${({ theme }) => theme.colors.border.contrast};
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 `;
 
 const Textarea = styled.textarea`
-  padding: ${tokens.spacing[12]};
-  border-radius: ${tokens.radius.md};
-  border: 1px solid ${({ theme }) => theme.colors.border.default};
+  ${({ theme }) => theme.typography.Body['KR-Small']}
+  padding: ${({ theme }) => theme.spacing[3]};
+  border-radius: ${({ theme }) => theme.radius[2]};
+  border: 1px solid ${({ theme }) => theme.colors.border.secondary};
   color: ${({ theme }) => theme.colors.text.primary};
-  outline: none;
-  resize: vertical;
-  line-height: 1.6;
-  transition: border-color ${tokens.transition.fast};
+  min-height: 120px;
+  transition: border-color ${({ theme }) => theme.transition.fast};
 
   &::placeholder {
-    color: ${({ theme }) => theme.colors.text.tertiary};
+    color: ${({ theme }) => theme.colors.text.contrast};
+    opacity: 0.4;
   }
 
   &:focus {
-    border-color: ${({ theme }) => theme.colors.border.strong};
+    border-color: ${({ theme }) => theme.colors.border.contrast};
   }
 `;
 
 const TagGrid = styled.div`
+  padding: ${({ theme }) => theme.spacing[2]} 0;
   display: flex;
   flex-wrap: wrap;
-  gap: ${tokens.spacing[6]};
+  gap: ${({ theme }) => theme.spacing[2]};
 `;
 
 const TagChip = styled.button`
-  padding: 5px 12px;
-  border-radius: ${tokens.radius.full};
-  border: 1px solid
-    ${({ theme, $active, $tag }) =>
-      $active ? (theme.colors.tag[$tag]?.text ?? theme.colors.border.strong) : theme.colors.border.default};
+  ${({ theme }) => theme.typography.Label['EN-Small']}
+  padding: ${({ theme }) => theme.spacing[1]} ${({ theme }) => theme.spacing[3]};
+  border-radius: ${({ theme }) => theme.radius.full};
   background-color: ${({ theme, $active, $tag }) =>
-    $active ? (theme.colors.tag[$tag]?.surface ?? theme.colors.surface.tertiary) : 'transparent'};
+    $active ? theme.colors.tag[$tag]?.bg || theme.colors.surface.secondary : '#EFEFEF'};
   color: ${({ theme, $active, $tag }) =>
-    $active ? (theme.colors.tag[$tag]?.text ?? theme.colors.text.primary) : theme.colors.text.tertiary};
-  transition: all ${tokens.transition.fast};
+    $active ? theme.colors.tag[$tag]?.text || theme.colors.text.primary : '#A0A0A0'};
+  transition: all ${({ theme }) => theme.transition.fast};
 
   &:hover {
-    border-color: ${({ theme }) => theme.colors.border.strong};
-    color: ${({ theme }) => theme.colors.text.primary};
+    background-color: ${({ theme, $tag }) => theme.colors.tag[$tag]?.bg};
+    opacity: 5;
   }
 `;
 
-const VisibilityRow = styled.div`
+const VisibilityContainer = styled.div`
   display: flex;
-  gap: ${tokens.spacing[8]};
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing[2]};
 `;
 
-const VisibilityOption = styled.button`
-  flex: 1;
-  padding: ${tokens.spacing[12]};
-  border-radius: ${tokens.radius.md};
-  border: 1px solid ${({ theme, $active }) => ($active ? theme.colors.border.strong : theme.colors.border.default)};
-  background-color: ${({ theme, $active }) => ($active ? theme.colors.surface.tertiary : 'transparent')};
-  text-align: left;
-  transition: all ${tokens.transition.fast};
+const VisibilityTabList = styled.div`
+  background-color: #f2f2f2;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 4px;
+  border-radius: 8px;
+`;
 
-  &:hover {
-    border-color: ${({ theme }) => theme.colors.border.strong};
+const VisibilityTab = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease-in-out;
+  color: ${({ theme, $active }) => (!$active ? theme.colors.text.contrast : theme.colors.text.primary)};
+  background-color: ${({ $active }) => ($active ? '#FFFFFF' : 'transparent')};
+
+  svg {
+    color: ${({ theme, $active }) => ($active ? theme.colors.icon.primary : theme.colors.icon.contrast)};
   }
 `;
 
-const VisibilityTitle = styled.p`
-  color: ${({ theme }) => theme.colors.text.primary};
-  margin-bottom: 2px;
+const TeamSelector = styled.div`
+  border: 1px solid ${({ theme }) => theme.colors.border.secondary};
+  border-radius: ${({ theme }) => theme.radius[2]};
+  padding: ${({ theme }) => theme.spacing[3]};
+  background-color: ${({ theme }) => theme.colors.surface.primary};
+  box-shadow: ${({ theme }) => theme.shadows[1]};
 `;
 
-const VisibilityDesc = styled.p`
-  color: ${({ theme }) => theme.colors.text.tertiary};
+const TeamSelectorTitle = styled.h4`
+  ${({ theme }) => theme.typography.Label['KR-Midium']}
+  color: ${({ theme }) => theme.colors.text.primary};
+  margin-bottom: ${({ theme }) => theme.spacing[2]};
+`;
+
+const TeamList = styled.ul`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing[2]};
+`;
+
+const TeamItem = styled.li`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing[2]};
+`;
+
+const Checkbox = styled.input`
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+`;
+
+const TeamName = styled.span`
+  ${({ theme }) => theme.typography.Body['KR-Small']}
+  color: ${({ theme }) => theme.colors.text.primary};
+`;
+
+const VisibilityHint = styled.p`
+  ${({ theme }) => theme.typography.Caption['KR']}
+  color: ${({ theme }) => theme.colors.text.contrast};
+  margin-top: ${({ theme }) => theme.spacing[2]};
+  padding-left: ${({ theme }) => theme.spacing[2]};
 `;
 
 const ErrorMsg = styled.p`
-  color: #e05050;
+  ${({ theme }) => theme.typography.Label['KR-Small']}
+  color: ${({ theme }) => theme.colors.text.negative};
+  text-align: center;
 `;
 
 const ModalFooter = styled.div`
-  display: flex;
-  gap: ${tokens.spacing[8]};
-  padding: ${tokens.spacing[16]} ${tokens.spacing[24]};
-  border-top: 1px solid ${({ theme }) => theme.colors.border.default};
+  padding: ${({ theme }) => theme.spacing[4]} ${({ theme }) => theme.spacing[6]};
+  border-top: 1px solid ${({ theme }) => theme.colors.border.secondary};
   flex-shrink: 0;
-`;
-
-const CancelButton = styled.button`
-  flex: 1;
-  height: 40px;
-  border-radius: ${tokens.radius.md};
-  border: 1px solid ${({ theme }) => theme.colors.border.default};
-  color: ${({ theme }) => theme.colors.text.secondary};
-  transition: background-color ${tokens.transition.fast};
-
-  &:hover {
-    background-color: ${({ theme }) => theme.colors.surface.secondary};
-  }
-`;
-
-const SubmitButton = styled.button`
-  flex: 2;
-  height: 40px;
-  border-radius: ${tokens.radius.md};
-  background-color: ${({ theme }) => theme.colors.text.primary};
-  color: ${({ theme }) => theme.colors.surface.primary};
-  transition: opacity ${tokens.transition.fast};
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  &:hover:not(:disabled) {
-    opacity: 0.85;
-  }
 `;
 
 export default BookmarkModal;

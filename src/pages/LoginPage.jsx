@@ -1,8 +1,9 @@
 import styled from 'styled-components';
 import { supabase } from '../lib/supabase';
 import { tokens } from '../styles/theme';
+import { TbHeadset } from 'react-icons/tb';
 
-function LoginPage() {
+function LoginPage({ onToggleTheme, isDark }) {
   const handleGoogleLogin = async () => {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -13,22 +14,31 @@ function LoginPage() {
   };
 
   return (
-    <Container>
-      <Logo>
-        <img src="/Logo.svg" alt="Taggle 로고" />
-      </Logo>
-      <TextInner>
-        <Desc>흩어진 레퍼런스, 태그로 쉽고 빠르게</Desc>
-        <GoogleButton onClick={handleGoogleLogin}>
-          <GoogleIcon />
-          Google로 시작하기
-        </GoogleButton>
-      </TextInner>
-    </Container>
+    <Wrapper>
+      <Header>
+        <HeaderLogo>
+          <img src="/favicon.svg" alt="Taggle 심볼" />
+        </HeaderLogo>
+        <Toggle onClick={onToggleTheme} $isDark={isDark}>
+          <ToggleThumb $isDark={isDark} />
+        </Toggle>
+      </Header>
+      <Container>
+        <Logo>
+          <img src="/Logo.svg" alt="Taggle 로고" />
+        </Logo>
+        <TextInner>
+          <Desc>흩어진 레퍼런스, 태그로 쉽고 빠르게</Desc>
+          <GoogleButton onClick={handleGoogleLogin}>
+            <GoogleIcon />
+            Google로 시작하기
+          </GoogleButton>
+        </TextInner>
+      </Container>
+    </Wrapper>
   );
 }
 
-// Google 아이콘 SVG
 function GoogleIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 18 18">
@@ -52,36 +62,85 @@ function GoogleIcon() {
   );
 }
 
-const Container = styled.div`
-  width: 1200px;
-  margin: 0 auto;
+const Wrapper = styled.div`
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: ${({ theme }) => theme.colors.surface.primary};
+`;
+
+const Header = styled.header`
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${({ theme }) => theme.spacing[4]};
+  padding: ${({ theme }) => theme.spacing[6]} ${({ theme }) => theme.spacing[8]};
+  height: 88px;
+  background-color: ${({ theme }) => theme.colors.surface.primary};
+  border-bottom: 1px solid ${({ theme }) => theme.colors.border.secondary};
+  box-shadow: ${({ theme }) => theme.shadows[1]};
+`;
+
+const HeaderLogo = styled.span`
+  display: inline-block;
+`;
+
+const Toggle = styled.button`
+  width: 64px;
+  height: 32px;
+  border-radius: ${({ theme }) => theme.radius.full};
+  background-color: ${({ $isDark }) => ($isDark ? '#222222' : '#FAFAFA')};
+  position: relative;
+  transition: background-color ${({ theme }) => theme.transition.normal};
+  flex-shrink: 0;
+  border: 2px solid ${({ $isDark }) => ($isDark ? '#FAFAFA' : '#222222')};
+  box-shadow: ${({ theme }) => theme.shadows[1]};
+`;
+
+const ToggleThumb = styled.div`
+  position: absolute;
+  top: 2px;
+  left: ${({ $isDark }) => ($isDark ? '34px' : '2px')};
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: ${({ $isDark }) => ($isDark ? '#FAFAFA' : '#222222')};
+  transition: left ${({ theme }) => theme.transition.normal};
+`;
+
+const Container = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background-color: ${({ theme }) => theme.colors.surface.primary};
 `;
 
 const Logo = styled.h1`
-  width: 720px;
+  margin-top: 4%;
+  width: 500px;
+  padding-right: ${tokens.spacing[9]};
 `;
+
 const TextInner = styled.div`
-  margin-top: 80px;
+  margin-top: ${tokens.spacing[14]};
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 48px;
+  gap: ${tokens.spacing[11]};
 `;
+
 const Desc = styled.p`
   color: ${({ theme }) => theme.colors.text.primary};
-  ${({ theme }) => theme.typography.Headline['KR-H1']}
+  ${({ theme }) => theme.typography.Headline['KR-H3']}
   text-align: center;
   margin-bottom: ${tokens.spacing[2]};
 `;
 
 const GoogleButton = styled.button`
-  width: 486px;
+  width: 320px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -90,7 +149,7 @@ const GoogleButton = styled.button`
   border-radius: ${tokens.radius[2]};
   border: 1px solid ${({ theme }) => theme.colors.border.secondary};
   background-color: ${({ theme }) => theme.colors.surface.primary};
-  ${({ theme }) => theme.typography.Title['KR-Large']}
+  ${({ theme }) => theme.typography.Title['KR-Small']}
   color: ${({ theme }) => theme.colors.text.primary};
   transition: background-color ${tokens.transition.fast};
   box-shadow: ${tokens.shadows[1]};

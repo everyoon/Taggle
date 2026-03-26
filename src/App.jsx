@@ -1,38 +1,44 @@
 import { useState } from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from 'styled-components';
 import { lightTheme, darkTheme } from './styles/theme';
 import { GlobalStyle } from './styles/GlobalStyle';
 import { useAuth } from './hooks/useAuth';
-import { useTeam } from './hooks/useTeam';
 import LoginPage from './pages/LoginPage';
 import MainPage from './pages/MainPage';
-import TeamSetup from './components/common/TeamSetup';
+import InvitePage from './pages/InvitePage';
 
 function App() {
   const [isDark, setIsDark] = useState(false);
-  const { user, loading: authLoading, signOut } = useAuth();
-  const { team, loading: teamLoading, createTeam, joinTeam } = useTeam(user?.id);
+  const { user, loading, signOut } = useAuth();
   const theme = isDark ? darkTheme : lightTheme;
 
-  if (authLoading || teamLoading) return null;
+  if (loading) return null;
 
   return (
-    <ThemeProvider theme={theme}>
-      <GlobalStyle />
-      {!user ? (
-        <LoginPage />
-      ) : !team ? (
-        <TeamSetup onCreateTeam={createTeam} onJoinTeam={joinTeam} />
-      ) : (
-        <MainPage
-          user={user}
-          team={team}
-          onSignOut={signOut}
-          onToggleTheme={() => setIsDark((prev) => !prev)}
-          isDark={isDark}
-        />
-      )}
-    </ThemeProvider>
+    <BrowserRouter>
+      <ThemeProvider theme={theme}>
+        <GlobalStyle />
+        <Routes>
+          <Route path="/invite/:code" element={<InvitePage user={user} />} />
+          <Route
+            path="*"
+            element={
+              !user ? (
+                <LoginPage onToggleTheme={() => setIsDark((prev) => !prev)} isDark={isDark} />
+              ) : (
+                <MainPage
+                  user={user}
+                  onSignOut={signOut}
+                  onToggleTheme={() => setIsDark((prev) => !prev)}
+                  isDark={isDark}
+                />
+              )
+            }
+          />
+        </Routes>
+      </ThemeProvider>
+    </BrowserRouter>
   );
 }
 

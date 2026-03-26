@@ -1,33 +1,53 @@
 import styled from 'styled-components';
-import { tokens } from '../../styles/theme';
+import { MdOutlineHome, MdOutlineGroups, MdPersonOutline, MdArrowDropDown } from 'react-icons/md';
+import { FaRegStar } from 'react-icons/fa';
 
-const TAGS = ['레퍼런스', 'UI/UX', 'Color', 'Icon', 'Typography', 'Motion', 'Illustration', '3D', 'Branding', 'Tool'];
-
-const FILTERS = [
-  { value: 'all', label: '전체' },
-  { value: 'shared', label: '팀 공유' },
-  { value: 'mine', label: '내가 올린' },
-  { value: 'private', label: '나만 보기' },
-  { value: 'favorited', label: '즐겨찾기' },
+const TAGS = [
+  'UIUX',
+  'Color',
+  'Icon',
+  'Typography',
+  'AI',
+  'Branding',
+  'Motion',
+  'Figma',
+  'Photoshop',
+  'Illustration',
+  'Work',
+  'Ref',
+  'Etc',
 ];
 
-function Sidebar({ filter, onFilterChange, selectedTags, onTagToggle, onTagClear }) {
+const NAV_ITEMS = [
+  { value: 'home', label: 'Home', icon: MdOutlineHome },
+  { value: 'teams', label: 'Teams', icon: MdOutlineGroups, hasArrow: true },
+  { value: 'private', label: 'Private', icon: MdPersonOutline },
+  { value: 'favorites', label: 'Favorites', icon: FaRegStar },
+];
+
+function Sidebar({ filter, onFilterChange, selectedTags, onTagToggle }) {
   return (
     <Wrap>
-      <Section>
-        <SectionLabel>범위</SectionLabel>
-        {FILTERS.map((f) => (
-          <FilterButton key={f.value} $active={filter === f.value} onClick={() => onFilterChange(f.value)}>
-            {f.label}
-          </FilterButton>
-        ))}
-      </Section>
+      <Nav>
+        {NAV_ITEMS.map((item) => {
+          const IconComponent = item.icon;
+          return (
+            <NavItem key={item.value} $active={filter === item.value} onClick={() => onFilterChange(item.value)}>
+              <NavIcon>
+                <IconComponent size={24} />
+              </NavIcon>
+              <NavLabel>{item.label}</NavLabel>
+              {item.hasArrow && <MdArrowDropDown size={16} />}
+            </NavItem>
+          );
+        })}
+      </Nav>
+      <Divider />
 
-      <Section>
-        <SectionLabelRow>
-          <SectionLabel>태그</SectionLabel>
-          {selectedTags.length > 0 && <ClearButton onClick={onTagClear}>초기화</ClearButton>}
-        </SectionLabelRow>
+      <TagSection>
+        <TagHeader>
+          <TagTitle>Tags</TagTitle>
+        </TagHeader>
         <TagList>
           {TAGS.map((tag) => (
             <TagChip key={tag} $active={selectedTags.includes(tag)} $tag={tag} onClick={() => onTagToggle(tag)}>
@@ -35,85 +55,102 @@ function Sidebar({ filter, onFilterChange, selectedTags, onTagToggle, onTagClear
             </TagChip>
           ))}
         </TagList>
-      </Section>
+      </TagSection>
     </Wrap>
   );
 }
 
 const Wrap = styled.aside`
-  width: 200px;
-  flex-shrink: 0;
-  padding: ${tokens.spacing[20]} ${tokens.spacing[16]};
-  border-right: 1px solid ${({ theme }) => theme.colors.border.default};
-  display: flex;
-  flex-direction: column;
-  gap: ${tokens.spacing[24]};
+  width: 300px;
+  padding: ${({ theme }) => theme.spacing[6]} 0;
+  margin-right: ${({ theme }) => theme.spacing[4]};
   position: sticky;
-  top: 56px;
-  height: calc(100vh - 56px);
-  overflow-y: auto;
+  top: ${({ theme }) => theme.spacing[8]};
+  height: calc(100vh - 32px);
+  gap: ${({ theme }) => theme.spacing[6]};
 `;
 
-const Section = styled.div`
+const Nav = styled.nav`
   display: flex;
   flex-direction: column;
-  gap: ${tokens.spacing[4]};
+  gap: ${({ theme }) => theme.spacing[2]};
 `;
 
-const SectionLabel = styled.span`
-  color: ${({ theme }) => theme.colors.text.contrast};
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  margin-bottom: ${tokens.spacing[4]};
+const NavItem = styled.button`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing[2]};
+  width: 100%;
+  padding: ${({ theme }) => theme.spacing[2]} ${({ theme }) => theme.spacing[3]};
+  border-radius: ${({ theme }) => theme.radius[2]};
+  ${({ theme }) => theme.typography.Label['KR-Large']};
+  font-weight: ${({ $active }) => ($active ? 500 : 400)};
+  color: ${({ theme, $active }) => ($active ? theme.colors.text.primary : theme.colors.text.contrast)};
+  background-color: ${({ theme, $active }) => ($active ? theme.colors.surface.secondary : 'transparent')};
+  text-align: left;
+  transition: background-color ${({ theme }) => theme.transition.fast};
+
+  &:hover {
+    background-color: ${({ theme }) => theme.colors.surface.secondary};
+  }
 `;
 
-const SectionLabelRow = styled.div`
+const NavIcon = styled.div`
+  display: flex;
+  align-items: center;
+  svg {
+    font-size: 24px;
+    color: inherit;
+  }
+`;
+
+const NavLabel = styled.span`
+  flex: 1;
+`;
+
+const Divider = styled.div`
+  height: 1px;
+  background-color: ${({ theme }) => theme.colors.border.secondary};
+  margin: ${({ theme }) => theme.spacing[2]} ${({ theme }) => theme.spacing[1]};
+`;
+
+const TagSection = styled.div``;
+
+const TagHeader = styled.button`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: ${tokens.spacing[4]};
+  width: 100%;
+  padding: ${({ theme }) => theme.spacing[2]} ${({ theme }) => theme.spacing[3]};
 `;
 
-const ClearButton = styled.button`
-  color: ${({ theme }) => theme.colors.text.contrast};
-  transition: color ${tokens.transition.fast};
-
-  &:hover {
-    color: ${({ theme }) => theme.colors.text.primary};
-  }
-`;
-
-const FilterButton = styled.button`
-  text-align: left;
-  padding: ${tokens.spacing[8]} ${tokens.spacing[12]};
-  border-radius: ${tokens.radius.md};
-  color: ${({ theme, $active }) => ($active ? theme.colors.text.primary : theme.colors.text.contrast)};
-  transition:
-    background-color ${tokens.transition.fast},
-    color ${tokens.transition.fast};
-
-  &:hover {
-    color: ${({ theme }) => theme.colors.text.primary};
-  }
+const TagTitle = styled.span`
+  ${({ theme }) => theme.typography.Label['KR-Large']};
+  color: ${({ theme }) => theme.colors.text.primary};
 `;
 
 const TagList = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: ${tokens.spacing[4]};
+  gap: ${({ theme }) => theme.spacing[3]};
+  padding: ${({ theme }) => theme.spacing[3]};
 `;
 
 const TagChip = styled.button`
-  padding: 4px 10px;
-  border-radius: ${tokens.radius.full};
-  transition: opacity ${tokens.transition.fast};
-
+  ${({ theme }) => theme.typography.Label['EN-Large']};
+  padding: ${({ theme }) => theme.spacing[1]} ${({ theme }) => theme.spacing[3]} 2px;
+  border-radius: ${({ theme }) => theme.radius.full};
+  cursor: pointer;
+  transition: all ${({ theme }) => theme.transition.fast};
+  border: none;
+  background-color: ${({ theme, $active, $tag }) =>
+    $active ? theme.colors.tag[$tag]?.bg || theme.colors.surface.secondary : '#EFEFEF'};
   color: ${({ theme, $active, $tag }) =>
-    $active ? (theme.colors.tag[$tag]?.text ?? theme.colors.text.secondary) : theme.colors.text.contrast};
-
+    $active ? theme.colors.tag[$tag]?.text || theme.colors.text.primary : '#A0A0A0'};
+  box-shadow: ${({ $active }) => ($active ? '0 2px 4px rgba(0,0,0,0.1)' : 'none')};
   &:hover {
-    opacity: 0.8;
+    background-color: ${({ theme, $tag }) => theme.colors.tag[$tag]?.bg};
+    opacity: 5;
   }
 `;
-
 export default Sidebar;
