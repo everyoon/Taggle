@@ -1,73 +1,192 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 
 export function useTeam(userId) {
-  const [team, setTeam] = useState(null);
+  const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // 1. 팀 목록 불러오기
+  const fetchMyTeams = useCallback(async () => {
+    if (!userId) return;
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('team_members')
+        .select(
+          `
+          role,
+          teams!team_id (
+            id,
+            name,
+            avatar_url,
+            invite_code
+          )
+        `,
+        )
+        .eq('user_id', userId);
+
+      if (error) throw error;
+
+      const formatted =
+        data?.map((item) => ({
+          ...item.teams,
+          role: item.role,
+        })) ?? [];
+
+      setTeams(formatted);
+    } catch (err) {
+      console.error('팀 목록 로드 실패:', err.message);
+      setTeams([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [userId]);
+
   useEffect(() => {
-    // 유저가 없으면 팀 정보도 없으니 로딩을 바로 끝내버림!
     if (!userId) {
-      setTeam(null);
+      setTeams([]);
       setLoading(false);
       return;
     }
+    fetchMyTeams();
+  }, [userId, fetchMyTeams]);
 
-    // 유저가 있으면 팀 정보를 불러옴
-    fetchMyTeam();
-  }, [userId]);
-
-  const fetchMyTeam = async () => {
-    setLoading(true);
-    const { data } = await supabase.from('team_members').select('team_id, teams(*)').eq('user_id', userId).single();
-
-    setTeam(data?.teams ?? null);
-    setLoading(false);
-  };
-
+  // 2. 팀 생성
   const createTeam = async (name) => {
-    // 팀 생성
-    const { data: newTeam, error } = await supabase
-      .from('teams')
-      .insert({ name, created_by: userId })
-      .select()
-      .single();
+    try {
+      const { data: newTeam, error: teamError } = await supabase
+        .from('teams')
+        .insert({ name, created_by: userId })
+        .select()
+        .single();
 
-    if (error) return { error };
+      if (teamError) throw teamError;
 
-    // 생성자를 owner로 팀에 추가
-    await supabase.from('team_members').insert({ team_id: newTeam.id, user_id: userId, role: 'owner' });
+      const { error: memberError } = await supabase.from('team_members').insert({
+        team_id: newTeam.id,
+        user_id: userId,
+        role: 'owner',
+      });
 
-    setTeam(newTeam);
-    return { error: null };
+      if (memberError) throw memberError;
+
+      const newTeamWithRole = { ...newTeam, role: 'owner' };
+      setTeams((prev) => [...prev, newTeamWithRole]);
+
+      return { data: newTeamWithRole, error: null };
+    } catch (err) {
+      return { data: null, error: err.message };
+    }
   };
 
+  // 3. 팀 참여
   const joinTeam = async (inviteCode) => {
-    // 초대 코드로 팀 찾기
-    const { data: foundTeam, error } = await supabase
-      .from('teams')
-      .select()
-      .eq('invite_code', inviteCode.trim())
-      .single();
+    try {
+      const { data: foundTeam, error: findError } = await supabase
+        .from('teams')
+        .select()
+        .eq('invite_code', inviteCode.trim())
+        .single();
 
-    if (error || !foundTeam) return { error: '초대 코드를 확인해주세요.' };
+      if (findError || !foundTeam) throw new Error('초대 코드가 유효하지 않습니다.');
 
-    // 이미 팀원인지 확인
-    const { data: existing } = await supabase
-      .from('team_members')
-      .select()
-      .eq('team_id', foundTeam.id)
-      .eq('user_id', userId)
-      .single();
+      const { data: existing } = await supabase
+        .from('team_members')
+        .select()
+        .eq('team_id', foundTeam.id)
+        .eq('user_id', userId)
+        .maybeSingle();
 
-    if (existing) return { error: '이미 팀에 속해있어요.' };
+      if (existing) throw new Error('이미 참여 중인 팀입니다.');
 
-    // 팀 참여
-    await supabase.from('team_members').insert({ team_id: foundTeam.id, user_id: userId, role: 'member' });
+      const { error: joinError } = await supabase.from('team_members').insert({
+        team_id: foundTeam.id,
+        user_id: userId,
+        role: 'member',
+      });
 
-    setTeam(foundTeam);
-    return { error: null };
+      if (joinError) throw joinError;
+
+      const joinedTeamWithRole = { ...foundTeam, role: 'member' };
+      setTeams((prev) => [...prev, joinedTeamWithRole]);
+
+      return { data: joinedTeamWithRole, error: null };
+    } catch (err) {
+      return { data: null, error: err.message };
+    }
   };
 
-  return { team, loading, createTeam, joinTeam };
+  // 4. 팀장 권한 넘기기
+  const transferOwnership = async (teamId, targetUserId) => {
+    try {
+      const { error: nextOwnerError } = await supabase
+        .from('team_members')
+        .update({ role: 'owner' })
+        .eq('team_id', teamId)
+        .eq('user_id', targetUserId);
+
+      if (nextOwnerError) throw nextOwnerError;
+
+      const { error: prevOwnerError } = await supabase
+        .from('team_members')
+        .update({ role: 'member' })
+        .eq('team_id', teamId)
+        .eq('user_id', userId);
+
+      if (prevOwnerError) throw prevOwnerError;
+
+      await fetchMyTeams();
+
+      return { success: true };
+    } catch (err) {
+      console.error('위임 에러:', err.message);
+      return { success: false, error: err.message };
+    }
+  };
+
+  // 5. 팀 나가기
+  const leaveTeam = async (teamId) => {
+    const { error } = await supabase.from('team_members').delete().eq('team_id', teamId).eq('user_id', userId);
+
+    if (!error) {
+      setTeams((prev) => prev.filter((t) => t.id !== teamId));
+      return { success: true };
+    }
+    return { success: false, error };
+  };
+
+  // 6. 팀 삭제
+  const deleteTeam = async (teamId) => {
+    const { error } = await supabase.from('teams').delete().eq('id', teamId);
+
+    if (!error) {
+      setTeams((prev) => prev.filter((t) => t.id !== teamId));
+      return { success: true };
+    }
+    return { success: false, error };
+  };
+
+  // 7. 팀원 내보내기
+  const removeMember = async (teamId, targetUserId) => {
+    try {
+      const { error } = await supabase.from('team_members').delete().eq('team_id', teamId).eq('user_id', targetUserId);
+      if (error) throw error;
+      return { success: true, error: null };
+    } catch (err) {
+      console.error('멤버 강퇴 실패:', err.message);
+      return { success: false, error: err.message };
+    }
+  };
+
+  return {
+    teams,
+    loading,
+    refetch: fetchMyTeams,
+    createTeam,
+    joinTeam,
+    transferOwnership,
+    leaveTeam,
+    removeMember,
+    deleteTeam,
+  };
 }

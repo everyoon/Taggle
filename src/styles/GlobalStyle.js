@@ -14,9 +14,36 @@ export const GlobalStyle = createGlobalStyle`
     padding: 0;
   }
 
+  
+
   html {
     font-size: 16px;
     -webkit-font-smoothing: antialiased;
+
+  ::-webkit-scrollbar {
+    width: 6px; 
+    height: 6px; 
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: ${({ theme }) => theme.colors.surface.brand}; 
+    border-radius: 50%;
+    background-clip: padding-box;
+  }
+
+  ::-webkit-scrollbar-track {
+    background-color: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: ${({ theme }) => theme.colors.surface.brand}; 
+  }
+
+  }
+  
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: ${({ theme }) => theme.colors.surface.brand} transparent;
   }
 
   body {

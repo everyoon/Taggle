@@ -90,6 +90,13 @@ const typography = {
       letter-spacing: -0.025em;
       line-height: 1.25;
     `,
+    'EN-Small': css`
+      font-family: 'Lugati v1', sans-serif;
+      font-size: 20px;
+      font-weight: 400;
+      letter-spacing: 1px;
+      line-height: 1.28;
+    `,
   },
   Body: {
     'KR-Large': css`

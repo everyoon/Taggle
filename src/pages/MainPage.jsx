@@ -1,29 +1,55 @@
 import { useState } from 'react';
 import styled from 'styled-components';
 import Header from '../components/common/Header';
+import Footer from '../components/common/Footer';
+
 import Sidebar from '../components/common/Sidebar';
 import BookmarkGrid from '../components/bookmark/BookmarkGrid';
 import BookmarkModal from '../components/bookmark/BookmarkModal';
 import { useBookmarks } from '../hooks/useBookmarks';
 import Button from '../components/common/Button';
 import { MdAdd } from 'react-icons/md';
+import { useTeam } from '../hooks/useTeam';
+import Pagination from '../components/common/Pagination';
 
 function MainPage({ user, onSignOut, onToggleTheme, isDark }) {
   const [selectedTags, setSelectedTags] = useState([]);
   const [filter, setFilter] = useState('home');
-  const [sort, setSort] = useState('latest');
+  const [sort] = useState('latest');
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 12;
 
   const { bookmarks, loading, addBookmark, updateBookmark, deleteBookmark, toggleFavorite } = useBookmarks(
     user.id,
-    null,
+    filter,
+    selectedTags,
   );
 
-  const toggleTag = (tag) => {
-    setSelectedTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
+  const handleSearch = (val) => {
+    setSearch(val);
+    setCurrentPage(1);
   };
+
+  const handleFilterChange = (newFilter) => {
+    setFilter(newFilter);
+    setCurrentPage(1);
+  };
+
+  const handleTagToggle = (tag) => {
+    setSelectedTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
+    setCurrentPage(1);
+  };
+
+  const handleClearTags = () => {
+    setSelectedTags([]);
+    setCurrentPage(1);
+  };
+
+  // 팀 목록 호출
+  const { teams, refetch: refetchTeams } = useTeam(user.id);
 
   const handleEdit = (bookmark) => {
     setEditTarget(bookmark);
@@ -40,11 +66,9 @@ function MainPage({ user, onSignOut, onToggleTheme, isDark }) {
     return await addBookmark(form);
   };
 
+  // 사이드 필터링
   const filtered = bookmarks.filter((b) => {
-    if (filter === 'private' && !(b.visibility === 'private' && b.user_id === user.id)) return false;
-    if (filter === 'teams' && b.visibility !== 'shared') return false;
-    if (filter === 'favorites' && !b.is_favorited) return false;
-    if (selectedTags.length > 0 && !selectedTags.every((t) => b.tags?.includes(t))) return false;
+    // 1. 검색어 필터
     if (search) {
       const q = search.toLowerCase();
       const hit =
@@ -54,6 +78,13 @@ function MainPage({ user, onSignOut, onToggleTheme, isDark }) {
         b.url?.toLowerCase().includes(q);
       if (!hit) return false;
     }
+
+    // 2. 태그 OR 필터
+    if (selectedTags.length > 0) {
+      const hasTag = selectedTags.some((t) => b.tags?.includes(t));
+      if (!hasTag) return false;
+    }
+
     return true;
   });
 
@@ -65,23 +96,30 @@ function MainPage({ user, onSignOut, onToggleTheme, isDark }) {
     return new Date(b.created_at) - new Date(a.created_at);
   });
 
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedBookmarks = sorted.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(sorted.length / ITEMS_PER_PAGE);
+
   return (
     <Layout>
       <Header
         user={user}
         search={search}
-        onSearch={setSearch}
+        onSearch={handleSearch}
         onSignOut={onSignOut}
         onToggleTheme={onToggleTheme}
         isDark={isDark}
+        teams={teams}
+        onTeamsUpdated={refetchTeams}
       />
       <Body>
         <Sidebar
           filter={filter}
-          onFilterChange={setFilter}
+          onFilterChange={handleFilterChange}
           selectedTags={selectedTags}
-          onTagToggle={toggleTag}
-          onTagClear={() => setSelectedTags([])}
+          onTagToggle={handleTagToggle}
+          onClearTags={handleClearTags}
+          teams={teams}
         />
         <Main>
           <TopBar>
@@ -92,18 +130,29 @@ function MainPage({ user, onSignOut, onToggleTheme, isDark }) {
             </Button>
           </TopBar>
           <BookmarkGrid
-            bookmarks={sorted}
             loading={loading}
             currentUserId={user.id}
             filter={filter}
             onEdit={handleEdit}
             onDelete={deleteBookmark}
             onFavorite={toggleFavorite}
+            search={search} // 검색어 상태 전달
+            hasTags={selectedTags.length > 0}
+            bookmarks={paginatedBookmarks}
           />
+          {sorted.length > 0 && <Pagination current={currentPage} total={totalPages} onPageChange={setCurrentPage} />}
         </Main>
       </Body>
 
-      <BookmarkModal open={modalOpen} onClose={handleModalClose} onSubmit={handleSubmit} editTarget={editTarget} />
+      <BookmarkModal
+        key={editTarget?.id || 'new'}
+        open={modalOpen}
+        onClose={handleModalClose}
+        onSubmit={handleSubmit}
+        editTarget={editTarget}
+        teams={teams}
+      />
+      <Footer />
     </Layout>
   );
 }
@@ -113,12 +162,20 @@ const Layout = styled.div`
   display: flex;
   flex-direction: column;
   background-color: ${({ theme }) => theme.colors.surface.primary};
+  min-width: 504px;
 `;
 
 const Body = styled.div`
-  padding: ${({ theme }) => theme.spacing[8]} ${({ theme }) => theme.spacing[16]};
+  padding: ${({ theme }) => theme.spacing[8]} ${({ theme }) => theme.spacing[6]} ${({ theme }) => theme.spacing[16]};
   display: flex;
   flex: 1;
+  position: sticky;
+  @media (max-width: 1024px) {
+    padding: ${({ theme }) => theme.spacing[8]} ${({ theme }) => theme.spacing[6]} ${({ theme }) => theme.spacing[14]};
+  }
+  @media (max-width: 500px) {
+    padding: ${({ theme }) => theme.spacing[6]} ${({ theme }) => theme.spacing[4]}${({ theme }) => theme.spacing[10]};
+  }
 `;
 
 const Main = styled.main`

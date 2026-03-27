@@ -1,5 +1,6 @@
 import styled from 'styled-components';
-import { MdAdd, MdOutlineGroups } from 'react-icons/md'; // 사용할 아이콘 임포트
+import { MdAdd, MdOutlineGroups, MdSearchOff, MdLabelOff } from 'react-icons/md';
+import { FaRegStar } from 'react-icons/fa';
 import BookmarkCard from './BookmarkCard';
 import Button from '../common/Button';
 
@@ -29,12 +30,23 @@ const EMPTY_CONFIG = {
     title: '자주 보는 북마크가 아직 없어요.',
     desc: '별 아이콘을 눌러 자주 방문하는 사이트를<br />즐겨찾기에 추가해 보세요.',
     btnText: null,
-    icon: null,
-    action: null,
+    icon: FaRegStar,
+  },
+  search: {
+    title: '검색 결과가 없습니다.',
+    desc: '입력하신 키워드와 일치하는 북마크가 없어요.<br />다른 검색어를 입력해 보시겠어요?',
+    btnText: null,
+    icon: MdSearchOff,
+  },
+  tags: {
+    title: '해당 태그의 북마크가 없습니다.',
+    desc: '선택하신 태그 조합에 해당하는 북마크를 찾지 못했어요.<br />태그를 변경하거나 전체 취소를 눌러보세요.',
+    btnText: null,
+    icon: MdLabelOff,
   },
 };
 
-function BookmarkGrid({ bookmarks, loading, currentUserId, filter, onEdit, onDelete, onFavorite }) {
+function BookmarkGrid({ bookmarks, loading, currentUserId, filter, search, hasTags, onEdit, onDelete, onFavorite }) {
   if (loading)
     return (
       <Empty>
@@ -43,10 +55,20 @@ function BookmarkGrid({ bookmarks, loading, currentUserId, filter, onEdit, onDel
     );
 
   if (bookmarks.length === 0) {
-    const config = EMPTY_CONFIG[filter] || EMPTY_CONFIG.home;
+    let status = filter;
+    if (search) status = 'search';
+    else if (hasTags) status = 'tags';
+
+    const config = EMPTY_CONFIG[status] || EMPTY_CONFIG.home;
     const IconComponent = config.icon;
+
     return (
       <Empty>
+        {IconComponent && (
+          <IconWrapper>
+            <IconComponent size={64} />
+          </IconWrapper>
+        )}
         <EmptyTextInner>
           <EmptyTitle>{config.title}</EmptyTitle>
           <EmptyDesc dangerouslySetInnerHTML={{ __html: config.desc }} />
@@ -62,7 +84,7 @@ function BookmarkGrid({ bookmarks, loading, currentUserId, filter, onEdit, onDel
               }
             }}
           >
-            {IconComponent && <IconComponent size={24} />}
+            <MdAdd size={24} />
             {config.btnText}
           </Button>
         )}
@@ -88,8 +110,16 @@ function BookmarkGrid({ bookmarks, loading, currentUserId, filter, onEdit, onDel
 
 const Grid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: ${({ theme }) => theme.spacing[4]};
+
+  grid-template-columns: 1fr;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
 `;
 
 const Empty = styled.div`
@@ -101,6 +131,13 @@ const Empty = styled.div`
   gap: ${({ theme }) => theme.spacing[8]};
   text-align: center;
 `;
+
+const IconWrapper = styled.div`
+  color: ${({ theme }) => theme.colors.text.contrast};
+  opacity: 0.3;
+  margin-bottom: -${({ theme }) => theme.spacing[4]};
+`;
+
 const EmptyTextInner = styled.div`
   display: flex;
   flex-direction: column;

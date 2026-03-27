@@ -3,16 +3,14 @@ import styled from 'styled-components';
 import ProfileModal from '../profile/ProfileModal';
 import CreateTeamModal from '../team/CreateTeamModal';
 import ManageTeamModal from '../team/ManageTeamModal';
-import { useTeam } from '../../hooks/useTeam';
-import { MdSearch, MdPersonOutline, MdOutlineGroupAdd, MdOutlineGroups, MdLogout } from 'react-icons/md';
+import { MdSearch, MdPersonOutline, MdOutlineGroupAdd, MdOutlineGroups, MdLogout, MdClose } from 'react-icons/md';
 
-function Header({ user, search, onSearch, onToggleTheme, isDark, onSignOut }) {
+function Header({ user, search, onSearch, onToggleTheme, isDark, onSignOut, teams, onTeamsUpdated }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [createTeamOpen, setCreateTeamOpen] = useState(false);
   const [manageTeamOpen, setManageTeamOpen] = useState(false);
   const dropdownRef = useRef(null);
-  const { teams, refetch: refetchTeams } = useTeam(user.id);
 
   // 외부 클릭 시 닫기
   useEffect(() => {
@@ -28,95 +26,116 @@ function Header({ user, search, onSearch, onToggleTheme, isDark, onSignOut }) {
       <Logo>
         <img src="/favicon.svg" alt="Taggle 심볼" />
       </Logo>
-      <SearchWrap>
-        <IconInner>
-          <MdSearch />
-        </IconInner>
-        <SearchInput
-          type="text"
-          placeholder="사이트, 설명, 태그를 검색하세요."
-          value={search}
-          onChange={(e) => onSearch(e.target.value)}
-        />
-      </SearchWrap>
+      {/* 1. 로그인한 사용자에게만 검색창 노출 */}
+      {user && (
+        <SearchWrap>
+          <IconInner>
+            <MdSearch />
+          </IconInner>
+          <SearchInput
+            type="text"
+            placeholder="사이트, 설명, 태그를 검색하세요."
+            value={search}
+            onChange={(e) => onSearch(e.target.value)}
+          />
+          {search && (
+            <ClearSearchButton onClick={() => onSearch('')} title="검색어 지우기">
+              <MdClose />
+            </ClearSearchButton>
+          )}
+        </SearchWrap>
+      )}
+
       <Right>
         <Toggle onClick={onToggleTheme} $isDark={isDark}>
           <ToggleThumb $isDark={isDark} />
         </Toggle>
-        <ProfileWrap ref={dropdownRef}>
-          <Avatar src={user.user_metadata?.avatar_url} alt="" onClick={() => setDropdownOpen((prev) => !prev)} />
-          {dropdownOpen && (
-            <Dropdown>
-              <UserInfo>
-                <UserAvatar src={user.user_metadata?.avatar_url} alt="" />
-                <UserDetail>
-                  <UserName>{user.user_metadata?.full_name}</UserName>
-                  <UserEmail>{user.email}</UserEmail>
-                </UserDetail>
-              </UserInfo>
-              <Divider />
-              <DropdownItem
-                onClick={() => {
-                  setDropdownOpen(false);
-                  setProfileOpen(true);
-                }}
-              >
-                <MdPersonOutline />
-                프로필 관리
-              </DropdownItem>
-              <Divider />
-              <DropdownItem
-                onClick={() => {
-                  setDropdownOpen(false);
-                  setCreateTeamOpen(true);
-                }}
-              >
-                <MdOutlineGroupAdd />팀 만들기
-              </DropdownItem>
-              <Divider />
-              <DropdownItem
-                onClick={() => {
-                  setDropdownOpen(false);
-                  setManageTeamOpen(true);
-                }}
-              >
-                <MdOutlineGroups />팀 관리
-              </DropdownItem>
-              <Divider />
-              <DropdownItem
-                $danger
-                onClick={() => {
-                  setDropdownOpen(false);
-                  onSignOut();
-                }}
-              >
-                <MdLogout />
-                로그아웃
-              </DropdownItem>
-            </Dropdown>
-          )}
-        </ProfileWrap>
+
+        {/* 2. 로그인한 사용자에게만 프로필 노출 */}
+        {user && (
+          <ProfileWrap ref={dropdownRef}>
+            <Avatar src={user.user_metadata?.avatar_url} alt="" onClick={() => setDropdownOpen((prev) => !prev)} />
+            {dropdownOpen && (
+              <Dropdown>
+                <UserInfo>
+                  <UserAvatar src={user.user_metadata?.avatar_url} alt="" />
+                  <UserDetail>
+                    <UserName>{user.user_metadata?.full_name}</UserName>
+                    <UserEmail>{user.email}</UserEmail>
+                  </UserDetail>
+                </UserInfo>
+                <Divider />
+                <DropdownItem
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    setProfileOpen(true);
+                  }}
+                >
+                  <MdPersonOutline />
+                  프로필 관리
+                </DropdownItem>
+                <Divider />
+                <DropdownItem
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    setCreateTeamOpen(true);
+                  }}
+                >
+                  <MdOutlineGroupAdd />팀 만들기
+                </DropdownItem>
+                <Divider />
+                <DropdownItem
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    setManageTeamOpen(true);
+                  }}
+                >
+                  <MdOutlineGroups />팀 관리
+                </DropdownItem>
+                <Divider />
+                <DropdownItem
+                  $danger
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    onSignOut();
+                  }}
+                >
+                  <MdLogout />
+                  로그아웃
+                </DropdownItem>
+              </Dropdown>
+            )}
+          </ProfileWrap>
+        )}
       </Right>
-      {/* 모달들 */}
-      <ProfileModal
-        open={profileOpen}
-        onClose={() => setProfileOpen(false)}
-        user={user}
-        onUpdated={() => window.location.reload()}
-      />
-      <CreateTeamModal
-        open={createTeamOpen}
-        onClose={() => setCreateTeamOpen(false)}
-        userId={user.id}
-        onCreated={() => refetchTeams()}
-      />
-      <ManageTeamModal
-        open={manageTeamOpen}
-        onClose={() => setManageTeamOpen(false)}
-        userId={user.id}
-        teams={teams}
-        onTeamsUpdated={() => refetchTeams()}
-      />
+
+      {user && (
+        <>
+          <ProfileModal
+            open={profileOpen}
+            onClose={() => setProfileOpen(false)}
+            user={user}
+            onUpdated={() => window.location.reload()}
+          />
+          {createTeamOpen && (
+            <CreateTeamModal
+              open={createTeamOpen}
+              onClose={() => setCreateTeamOpen(false)}
+              userId={user.id}
+              onCreated={onTeamsUpdated}
+            />
+          )}
+          {manageTeamOpen && (
+            <ManageTeamModal
+              open={manageTeamOpen}
+              onClose={() => setManageTeamOpen(false)}
+              userId={user.id}
+              teams={teams}
+              onTeamsUpdated={onTeamsUpdated}
+            />
+          )}
+        </>
+      )}
     </Wrap>
   );
 }
@@ -149,6 +168,7 @@ const SearchWrap = styled.div`
   background-color: ${({ theme }) => theme.colors.surface.primary};
   transition: border-color ${({ theme }) => theme.transition.fast};
   gap: ${({ theme }) => theme.spacing[1]};
+  align-items: center;
 `;
 const IconInner = styled.div`
   width: 24px;
@@ -167,6 +187,24 @@ const SearchInput = styled.input`
   ${({ theme }) => theme.typography.Body['KR-Small']}
   &::placeholder {
     color: ${({ theme }) => theme.colors.text.contrast};
+  }
+`;
+
+const ClearSearchButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: ${({ theme }) => theme.spacing[1]};
+  color: ${({ theme }) => theme.colors.text.contrast};
+  transition: color ${({ theme }) => theme.transition.fast};
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  &:hover {
+    color: ${({ theme }) => theme.colors.text.primary};
   }
 `;
 

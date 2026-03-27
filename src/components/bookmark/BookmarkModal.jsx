@@ -1,31 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import styled from 'styled-components';
 import { fetchLinkPreview } from '../../hooks/useLinkPreview';
 import Button from '../common/Button';
 import { MdClose, MdPerson, MdGroups } from 'react-icons/md';
-
-// Mock data for teams
-const MOCK_TEAMS = [
-  { id: 1, name: '돼지원정단', selected: false },
-  { id: 2, name: '피그마 싫어', selected: false },
-  { id: 3, name: '애옹애옹애옹', selected: false },
-];
-
-const TAGS = [
-  'UIUX',
-  'Color',
-  'Icon',
-  'Typography',
-  'AI',
-  'Branding',
-  'Motion',
-  'Figma',
-  'Photoshop',
-  'Illustration',
-  'Work',
-  'Ref',
-  'Etc',
-];
+import { TAGS } from '../common/tags';
+import TagChip from '../common/TagChip';
 
 const INITIAL_FORM = {
   url: '',
@@ -33,48 +12,126 @@ const INITIAL_FORM = {
   description: '',
   tags: [],
   visibility: 'private',
-  selectedTeams: [],
+  selectedTeam: null,
 };
 
-function BookmarkModal({ open, onClose, onSubmit, editTarget }) {
-  const [form, setForm] = useState(INITIAL_FORM);
+const getInitialFormState = (target) => {
+  if (!target) return INITIAL_FORM;
+
+  let initialTeam = null;
+  if (target.team_id) {
+    initialTeam = target.team_id;
+  } else if (Array.isArray(target.team_ids) && target.team_ids.length > 0) {
+    initialTeam = target.team_ids[0];
+  } else if (Array.isArray(target.bookmark_teams) && target.bookmark_teams.length > 0) {
+    initialTeam = target.bookmark_teams[0].team_id;
+  } else if (Array.isArray(target.teams) && target.teams.length > 0) {
+    initialTeam = target.teams[0].id;
+  }
+
+  return {
+    url: target.url || target.link || '',
+    title: target.title || '',
+    description: target.description || target.desc || '',
+    tags: target.tags || [],
+    visibility: target.visibility || 'private',
+    selectedTeam: initialTeam,
+  };
+};
+
+function BookmarkModal({ open, onClose, onSubmit, editTarget, teams = [] }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [fetching, setFetching] = useState(false);
+  const [form, setForm] = useState(() => getInitialFormState(open ? editTarget : null));
+  const modalBodyRef = useRef(null);
 
-  useEffect(() => {
-    if (editTarget) {
-      setForm({
-        url: editTarget.url,
-        title: editTarget.title,
-        description: editTarget.description ?? '',
-        tags: editTarget.tags ?? [],
-        visibility: editTarget.visibility,
-        selectedTeams: editTarget.selectedTeams ?? [],
-      });
+  const [prevOpen, setPrevOpen] = useState(open);
+  const [prevEditTarget, setPrevEditTarget] = useState(editTarget);
+
+  if (open !== prevOpen || editTarget !== prevEditTarget) {
+    setPrevOpen(open);
+    setPrevEditTarget(editTarget);
+
+    if (open) {
+      setForm(getInitialFormState(editTarget));
+      setError('');
+      setFetching(false);
     } else {
       setForm(INITIAL_FORM);
     }
+  }
+  const scrollToTop = () => {
+    if (modalBodyRef.current) {
+      modalBodyRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!form.url.trim()) {
+      setError('URL을 입력해주세요.');
+      scrollToTop();
+      return;
+    }
+
+    if (form.tags.length === 0) {
+      setError('태그를 하나 이상 선택해주세요.');
+      scrollToTop();
+      return;
+    }
+
+    if (form.visibility === 'shared' && !form.selectedTeam) {
+      setError('공유할 팀을 선택해주세요.');
+      scrollToTop();
+      return;
+    }
+
+    setLoading(true);
     setError('');
-  }, [editTarget, open]);
+
+    const submitData = {
+      ...(isEdit && { id: editTarget.id }),
+      url: form.url,
+      title: form.title,
+      description: form.description,
+      tags: form.tags,
+      visibility: form.visibility,
+      selectedTeams: form.selectedTeam ? [form.selectedTeam] : [],
+    };
+
+    const { error: submitError } = await onSubmit(submitData);
+    setLoading(false);
+
+    if (submitError) {
+      setError('저장 중 오류가 발생했어요. 다시 시도해주세요.');
+      scrollToTop();
+    } else {
+      setForm(INITIAL_FORM);
+      onClose();
+    }
+  };
+
+  const handleClose = () => {
+    setForm(INITIAL_FORM);
+    setError('');
+    onClose();
+  };
 
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
   const toggleTag = (tag) => {
-    setForm((prev) => ({
-      ...prev,
-      tags: prev.tags.includes(tag) ? prev.tags.filter((t) => t !== tag) : [...prev.tags, tag],
-    }));
-  };
+    const isSelected = form.tags.includes(tag);
 
-  const toggleTeamSelection = (teamId) => {
+    if (!isSelected && form.tags.length >= 5) {
+      alert('태그는 최대 5개까지만 선택할 수 있습니다.');
+      return;
+    }
+
     setForm((prev) => ({
       ...prev,
-      selectedTeams: prev.selectedTeams.includes(teamId)
-        ? prev.selectedTeams.filter((id) => id !== teamId)
-        : [...prev.selectedTeams, teamId],
+      tags: isSelected ? prev.tags.filter((t) => t !== tag) : [...prev.tags, tag],
     }));
   };
 
@@ -91,37 +148,21 @@ function BookmarkModal({ open, onClose, onSubmit, editTarget }) {
     setFetching(false);
   };
 
-  const handleSubmit = async () => {
-    if (!form.url.trim()) return setError('URL을 입력해주세요.');
-    if (form.tags.length === 0) return setError('태그를 하나 이상 선택해주세요.');
-
-    setLoading(true);
-    setError('');
-    const { error } = await onSubmit(form);
-    setLoading(false);
-
-    if (error) {
-      setError('저장 중 오류가 발생했어요. 다시 시도해주세요.');
-    } else {
-      onClose();
-    }
-  };
+  const isEdit = !!editTarget;
 
   if (!open) return null;
 
-  const isEdit = !!editTarget;
-
   return (
-    <Overlay onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <Overlay>
       <Modal>
         <ModalHeader>
           <ModalTitle>{isEdit ? '북마크 수정하기' : '북마크 추가하기'}</ModalTitle>
-          <CloseButton onClick={onClose}>
+          <CloseButton onClick={handleClose}>
             <MdClose />
           </CloseButton>
         </ModalHeader>
 
-        <ModalBody>
+        <ModalBody ref={modalBodyRef}>
           {error && <ErrorMsg>{error}</ErrorMsg>}
           <Field>
             <Label>
@@ -160,14 +201,14 @@ function BookmarkModal({ open, onClose, onSubmit, editTarget }) {
           </Field>
           <Field>
             <Label>
-              Tags <Required>* 1개 이상 선택해주세요.</Required>
+              Tags <Required>* 최소 1개, 최대 5개 선택 가능</Required>
             </Label>
             <TagGrid>
               {TAGS.map((tag) => (
                 <TagChip
                   key={tag}
-                  $active={form.tags.includes(tag)}
                   $tag={tag}
+                  $active={form.tags.includes(tag)}
                   onClick={() => toggleTag(tag)}
                   type="button"
                 >
@@ -201,18 +242,18 @@ function BookmarkModal({ open, onClose, onSubmit, editTarget }) {
               </VisibilityTabList>
               {form.visibility === 'shared' && (
                 <TeamSelector>
-                  <TeamSelectorTitle>팀선택</TeamSelectorTitle>
+                  <TeamSelectorTitle>팀 선택</TeamSelectorTitle>
                   <TeamList>
-                    {MOCK_TEAMS.map((team) => (
-                      <TeamItem key={team.id}>
-                        <Checkbox
-                          type="checkbox"
-                          checked={form.selectedTeams.includes(team.id)}
-                          onChange={() => toggleTeamSelection(team.id)}
-                        />
-                        <TeamName>{team.name}</TeamName>
-                      </TeamItem>
-                    ))}
+                    {teams.length === 0 ? (
+                      <EmptyTeams>참여 중인 팀이 없어요.</EmptyTeams>
+                    ) : (
+                      teams.map((team) => (
+                        <TeamItem key={team.id} onClick={() => handleChange('selectedTeam', team.id)}>
+                          <Radio type="radio" name="team-selection" checked={form.selectedTeam === team.id} readOnly />
+                          <TeamName>{team.name}</TeamName>
+                        </TeamItem>
+                      ))
+                    )}
                   </TeamList>
                 </TeamSelector>
               )}
@@ -363,22 +404,6 @@ const TagGrid = styled.div`
   gap: ${({ theme }) => theme.spacing[2]};
 `;
 
-const TagChip = styled.button`
-  ${({ theme }) => theme.typography.Label['EN-Small']}
-  padding: ${({ theme }) => theme.spacing[1]} ${({ theme }) => theme.spacing[3]};
-  border-radius: ${({ theme }) => theme.radius.full};
-  background-color: ${({ theme, $active, $tag }) =>
-    $active ? theme.colors.tag[$tag]?.bg || theme.colors.surface.secondary : '#EFEFEF'};
-  color: ${({ theme, $active, $tag }) =>
-    $active ? theme.colors.tag[$tag]?.text || theme.colors.text.primary : '#A0A0A0'};
-  transition: all ${({ theme }) => theme.transition.fast};
-
-  &:hover {
-    background-color: ${({ theme, $tag }) => theme.colors.tag[$tag]?.bg};
-    opacity: 5;
-  }
-`;
-
 const VisibilityContainer = styled.div`
   display: flex;
   flex-direction: column;
@@ -386,7 +411,7 @@ const VisibilityContainer = styled.div`
 `;
 
 const VisibilityTabList = styled.div`
-  background-color: #f2f2f2;
+  background-color: ${({ theme }) => theme.colors.surface.secondary};
   display: grid;
   grid-template-columns: 1fr 1fr;
   padding: 4px;
@@ -403,8 +428,9 @@ const VisibilityTab = styled.button`
   font-size: 14px;
   font-weight: 500;
   transition: all 0.2s ease-in-out;
-  color: ${({ theme, $active }) => (!$active ? theme.colors.text.contrast : theme.colors.text.primary)};
-  background-color: ${({ $active }) => ($active ? '#FFFFFF' : 'transparent')};
+  color: ${({ theme, $active }) => ($active ? theme.colors.text.primary : theme.colors.text.contrast)};
+  background-color: ${({ theme, $active }) => ($active ? theme.colors.surface.primary : 'transparent')};
+  box-shadow: ${({ theme, $active }) => ($active ? theme.shadows[1] : 'none')};
 
   svg {
     color: ${({ theme, $active }) => ($active ? theme.colors.icon.primary : theme.colors.icon.contrast)};
@@ -428,19 +454,35 @@ const TeamSelectorTitle = styled.h4`
 const TeamList = styled.ul`
   display: flex;
   flex-direction: column;
-  gap: ${({ theme }) => theme.spacing[2]};
+  gap: ${({ theme }) => theme.spacing[1]};
 `;
 
 const TeamItem = styled.li`
   display: flex;
   align-items: center;
   gap: ${({ theme }) => theme.spacing[2]};
+  padding: ${({ theme }) => theme.spacing[2]};
+  border-radius: ${({ theme }) => theme.radius[2]};
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: ${({ theme }) => theme.colors.surface.secondary};
+  }
 `;
 
-const Checkbox = styled.input`
-  width: 16px;
-  height: 16px;
+const EmptyTeams = styled.p`
+  ${({ theme }) => theme.typography.Caption['KR']}
+  color: ${({ theme }) => theme.colors.text.contrast};
+  padding: ${({ theme }) => theme.spacing[2]} 0;
+  text-align: center;
+`;
+
+const Radio = styled.input`
+  width: 18px;
+  height: 18px;
   cursor: pointer;
+  accent-color: ${({ theme }) => theme.colors.surface.invert};
 `;
 
 const TeamName = styled.span`

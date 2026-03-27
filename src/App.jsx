@@ -9,12 +9,23 @@ import MainPage from './pages/MainPage';
 import InvitePage from './pages/InvitePage';
 
 function App() {
-  const [isDark, setIsDark] = useState(false);
+  const [isDark, setIsDark] = useState(() => {
+    const saved = localStorage.getItem('taggle-theme');
+    return saved === 'true';
+  });
+
   const { user, loading, signOut } = useAuth();
   const theme = isDark ? darkTheme : lightTheme;
 
-  if (loading) return null;
+  const toggleTheme = () => {
+    setIsDark((prev) => {
+      const next = !prev;
+      localStorage.setItem('taggle-theme', String(next));
+      return next;
+    });
+  };
 
+  if (loading) return null;
   return (
     <BrowserRouter>
       <ThemeProvider theme={theme}>
@@ -25,14 +36,9 @@ function App() {
             path="*"
             element={
               !user ? (
-                <LoginPage onToggleTheme={() => setIsDark((prev) => !prev)} isDark={isDark} />
+                <LoginPage onToggleTheme={toggleTheme} isDark={isDark} />
               ) : (
-                <MainPage
-                  user={user}
-                  onSignOut={signOut}
-                  onToggleTheme={() => setIsDark((prev) => !prev)}
-                  isDark={isDark}
-                />
+                <MainPage user={user} onSignOut={signOut} onToggleTheme={toggleTheme} isDark={isDark} />
               )
             }
           />

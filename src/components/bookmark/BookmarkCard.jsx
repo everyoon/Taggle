@@ -7,6 +7,8 @@ function BookmarkCard({ bookmark, currentUserId, onEdit, onDelete, onFavorite })
   const isShared = bookmark.visibility === 'shared';
   const [memoExpanded, setMemoExpanded] = useState(false);
 
+  const authorName = bookmark.profiles?.name || '알 수 없음';
+  const teamName = bookmark.teams?.name; // 위에서 추가한 조인 데이터
   const isLongMemo = bookmark.description && bookmark.description.length > 63;
 
   return (
@@ -72,14 +74,31 @@ function BookmarkCard({ bookmark, currentUserId, onEdit, onDelete, onFavorite })
             {bookmark.profiles?.avatar_url ? (
               <AuthorImg src={bookmark.profiles.avatar_url} alt="" />
             ) : (
-              <AuthorInitial>{bookmark.profiles?.name?.[0] ?? '?'}</AuthorInitial>
+              <AuthorInitial>{authorName[0]}</AuthorInitial>
             )}
-            <AuthorName>{isOwner ? bookmark.profiles?.name : (bookmark.profiles?.name ?? '알 수 없음')}</AuthorName>
+            <AuthorName>
+              {isShared && teamName ? (
+                <>
+                  <TeamNameInFooter>{teamName}</TeamNameInFooter>
+                  <Separator>·</Separator>
+                  {authorName}
+                </>
+              ) : (
+                authorName
+              )}
+            </AuthorName>
           </Who>
           {isOwner && (
             <Actions>
               <ActionBtn onClick={() => onEdit(bookmark)}>편집</ActionBtn>
-              <ActionBtn $danger onClick={() => onDelete(bookmark.id)}>
+              <ActionBtn
+                $danger
+                onClick={() => {
+                  if (window.confirm('정말 이 북마크를 삭제하시겠습니까?')) {
+                    onDelete(bookmark.id);
+                  }
+                }}
+              >
                 삭제
               </ActionBtn>
             </Actions>
@@ -185,6 +204,7 @@ const InfoContents = styled.div`
   flex-direction: column;
   gap: ${({ theme }) => theme.spacing[2]};
   padding-bottom: ${({ theme }) => theme.spacing[4]};
+  flex: 1;
 `;
 
 const Domain = styled.span`
@@ -231,6 +251,7 @@ const Memo = styled.p`
   overflow: ${({ $expanded }) => ($expanded ? 'visible' : 'hidden')};
   white-space: pre-wrap;
   word-break: break-all;
+  flex: 1;
 `;
 
 const MoreBtn = styled.button`
@@ -282,6 +303,23 @@ const AuthorImg = styled.img`
   object-fit: cover;
 `;
 
+const TeamNameInFooter = styled.span`
+  font-weight: 500;
+`;
+
+const Separator = styled.span`
+  margin: 0 4px;
+  color: ${({ theme }) => theme.colors.text.contrast};
+  opacity: 0.5;
+`;
+
+const AuthorName = styled.span`
+  ${({ theme }) => theme.typography.Caption['KR']}
+  color: ${({ theme }) => theme.colors.text.contrast};
+  display: flex;
+  align-items: center;
+`;
+
 const AuthorInitial = styled.div`
   ${({ theme }) => theme.typography.Caption['KR']}
   width: 24px;
@@ -291,11 +329,6 @@ const AuthorInitial = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  color: ${({ theme }) => theme.colors.text.contrast};
-`;
-
-const AuthorName = styled.span`
-  ${({ theme }) => theme.typography.Caption['KR']}
   color: ${({ theme }) => theme.colors.text.contrast};
 `;
 

@@ -1,0 +1,15 @@
+export const TAGS = [
+  'UIUX',
+  'Color',
+  'Icon',
+  'Typography',
+  'AI',
+  'Branding',
+  'Motion',
+  'Figma',
+  'Photoshop',
+  'Illustration',
+  'Work',
+  'Ref',
+  'Etc',
+];

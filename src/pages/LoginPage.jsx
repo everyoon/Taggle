@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 import { supabase } from '../lib/supabase';
 import { tokens } from '../styles/theme';
-import { TbHeadset } from 'react-icons/tb';
+import Header from '../components/common/Header';
 
 function LoginPage({ onToggleTheme, isDark }) {
   const handleGoogleLogin = async () => {
@@ -15,14 +15,8 @@ function LoginPage({ onToggleTheme, isDark }) {
 
   return (
     <Wrapper>
-      <Header>
-        <HeaderLogo>
-          <img src="/favicon.svg" alt="Taggle 심볼" />
-        </HeaderLogo>
-        <Toggle onClick={onToggleTheme} $isDark={isDark}>
-          <ToggleThumb $isDark={isDark} />
-        </Toggle>
-      </Header>
+      <Header user={null} onToggleTheme={onToggleTheme} isDark={isDark} />
+
       <Container>
         <Logo>
           <img src="/Logo.svg" alt="Taggle 로고" />
@@ -67,48 +61,6 @@ const Wrapper = styled.div`
   display: flex;
   flex-direction: column;
   background-color: ${({ theme }) => theme.colors.surface.primary};
-`;
-
-const Header = styled.header`
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: ${({ theme }) => theme.spacing[4]};
-  padding: ${({ theme }) => theme.spacing[6]} ${({ theme }) => theme.spacing[8]};
-  height: 88px;
-  background-color: ${({ theme }) => theme.colors.surface.primary};
-  border-bottom: 1px solid ${({ theme }) => theme.colors.border.secondary};
-  box-shadow: ${({ theme }) => theme.shadows[1]};
-`;
-
-const HeaderLogo = styled.span`
-  display: inline-block;
-`;
-
-const Toggle = styled.button`
-  width: 64px;
-  height: 32px;
-  border-radius: ${({ theme }) => theme.radius.full};
-  background-color: ${({ $isDark }) => ($isDark ? '#222222' : '#FAFAFA')};
-  position: relative;
-  transition: background-color ${({ theme }) => theme.transition.normal};
-  flex-shrink: 0;
-  border: 2px solid ${({ $isDark }) => ($isDark ? '#FAFAFA' : '#222222')};
-  box-shadow: ${({ theme }) => theme.shadows[1]};
-`;
-
-const ToggleThumb = styled.div`
-  position: absolute;
-  top: 2px;
-  left: ${({ $isDark }) => ($isDark ? '34px' : '2px')};
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background-color: ${({ $isDark }) => ($isDark ? '#FAFAFA' : '#222222')};
-  transition: left ${({ theme }) => theme.transition.normal};
 `;
 
 const Container = styled.div`
