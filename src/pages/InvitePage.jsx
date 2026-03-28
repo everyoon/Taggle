@@ -64,6 +64,21 @@ function InvitePage({ user }) {
     }
 
     setIsSubmitting(true);
+
+    // 중복 체크
+    const { data: existing } = await supabase
+      .from('team_members')
+      .select()
+      .eq('team_id', team.id)
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (existing) {
+      setStatus('already');
+      setIsSubmitting(false);
+      return;
+    }
+
     const { error } = await supabase.from('team_members').insert({
       team_id: team.id,
       user_id: user.id,
