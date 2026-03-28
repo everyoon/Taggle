@@ -17,6 +17,9 @@ const FooterWrapper = styled.footer`
   padding: ${({ theme }) => theme.spacing[6]} ${({ theme }) => theme.spacing[5]};
   border-top: 1px solid ${({ theme }) => theme.colors.border.secondary};
   background-color: #222;
+  @media (max-width: 504px) {
+    display: none;
+  }
 `;
 
 const Logo = styled.span`

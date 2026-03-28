@@ -109,6 +109,10 @@ const Wrap = styled.aside`
     width: 100px;
     margin-right: ${({ theme }) => theme.spacing[2]};
   }
+
+  @media (max-width: 504px) {
+    display: none;
+  }
 `;
 
 const Nav = styled.nav`
@@ -279,6 +283,12 @@ const TagList = styled.div`
     overflow-x: hidden;
     gap: ${({ theme }) => theme.spacing[2]};
     padding: ${({ theme }) => theme.spacing[2]} ${({ theme }) => theme.spacing[1]};
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    overflow-y: scroll;
+    .scroll-container::-webkit-scrollbar {
+      display: none;
+    }
     button {
       ${({ theme }) => theme.typography.Label['EN-Small']};
       flex-shrink: 0;

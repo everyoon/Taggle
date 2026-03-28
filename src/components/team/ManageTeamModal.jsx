@@ -343,8 +343,6 @@ function ManageTeamModal({ open, onClose, userId, teams = [], onTeamsUpdated }) 
   );
 }
 
-// --- Styled Components ---
-
 const Overlay = styled.div`
   position: fixed;
   inset: 0;
@@ -352,7 +350,7 @@ const Overlay = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 300;
+  z-index: 1000;
   padding: ${({ theme }) => theme.spacing[5]};
 `;
 
@@ -422,7 +420,6 @@ const ModalBody = styled.div`
   flex: 1;
 `;
 
-// --- Team List Mode ---
 const TeamList = styled.div`
   display: flex;
   flex-direction: column;
@@ -516,7 +513,6 @@ const SmallCircleBtn = styled.button`
   }
 `;
 
-// --- Profile Edit Mode ---
 const ProfileEditForm = styled.div`
   display: flex;
   flex-direction: column;
@@ -603,7 +599,6 @@ const Input = styled.input`
   }
 `;
 
-// --- Member List Mode ---
 const MemberListSection = styled.div`
   display: flex;
   flex-direction: column;
@@ -760,7 +755,7 @@ const ModalFooter = styled.div`
 
     &:hover {
       background-color: ${({ theme }) => theme.colors.surface.negative || '#ff4d4f'};
-      color: ${({ theme }) => theme.colors.text.invert || '#ffffff'}; /* 호버 시 글씨는 흰색으로 */
+      color: ${({ theme }) => theme.colors.text.invert || '#fafafa'};
     }
   }
 `;

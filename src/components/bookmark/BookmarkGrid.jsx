@@ -56,8 +56,10 @@ function BookmarkGrid({ bookmarks, loading, currentUserId, filter, search, hasTa
 
   if (bookmarks.length === 0) {
     let status = filter;
+
     if (search) status = 'search';
     else if (hasTags) status = 'tags';
+    else if (filter.startsWith('team_')) status = 'teams';
 
     const config = EMPTY_CONFIG[status] || EMPTY_CONFIG.home;
     const IconComponent = config.icon;
@@ -111,7 +113,6 @@ function BookmarkGrid({ bookmarks, loading, currentUserId, filter, search, hasTa
 const Grid = styled.div`
   display: grid;
   gap: ${({ theme }) => theme.spacing[4]};
-
   grid-template-columns: 1fr;
 
   @media (min-width: 768px) {
@@ -130,12 +131,29 @@ const Empty = styled.div`
   padding: ${({ theme }) => theme.spacing[16]} 0;
   gap: ${({ theme }) => theme.spacing[8]};
   text-align: center;
+
+  @media (max-width: 768px) {
+    padding: ${({ theme }) => theme.spacing[10]} 0;
+    gap: ${({ theme }) => theme.spacing[6]};
+  }
 `;
 
 const IconWrapper = styled.div`
   color: ${({ theme }) => theme.colors.text.contrast};
   opacity: 0.3;
   margin-bottom: -${({ theme }) => theme.spacing[4]};
+
+  .empty-icon {
+    width: 64px;
+    height: 64px;
+  }
+
+  @media (max-width: 768px) {
+    .empty-icon {
+      width: 48px;
+      height: 48px;
+    }
+  }
 `;
 
 const EmptyTextInner = styled.div`
@@ -144,15 +162,26 @@ const EmptyTextInner = styled.div`
   align-items: center;
   justify-content: center;
   gap: ${({ theme }) => theme.spacing[4]};
+  padding: 0 ${({ theme }) => theme.spacing[6]};
 `;
+
 const EmptyTitle = styled.p`
   ${({ theme }) => theme.typography.Title['KR-Large']};
   color: ${({ theme }) => theme.colors.text.primary};
+  word-break: keep-all;
+  @media (max-width: 768px) {
+    ${({ theme }) => theme.typography.Title['KR-Medium']};
+  }
 `;
 
 const EmptyDesc = styled.p`
   ${({ theme }) => theme.typography.Body['KR-Midium']};
   color: ${({ theme }) => theme.colors.text.contrast};
+  word-break: keep-all;
+
+  @media (max-width: 768px) {
+    ${({ theme }) => theme.typography.Body['KR-Small']};
+  }
 `;
 
 const EmptyText = styled.p`

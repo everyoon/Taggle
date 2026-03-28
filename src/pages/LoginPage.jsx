@@ -64,24 +64,43 @@ const Wrapper = styled.div`
 `;
 
 const Container = styled.div`
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  padding: 0 ${tokens.spacing[4]};
 `;
 
 const Logo = styled.h1`
-  margin-top: 4%;
-  width: 500px;
-  padding-right: ${tokens.spacing[9]};
+  width: 100%;
+  max-width: 500px;
+  display: flex;
+  justify-content: center;
+
+  img {
+    width: 100%;
+    height: auto;
+  }
+
+  @media (max-width: 768px) {
+    max-width: 320px;
+    margin-bottom: ${tokens.spacing[4]};
+  }
 `;
 
 const TextInner = styled.div`
-  margin-top: ${tokens.spacing[14]};
+  margin-top: ${tokens.spacing[11]};
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: ${tokens.spacing[11]};
+  gap: ${tokens.spacing[9]};
+  width: 100%;
+
+  @media (max-width: 768px) {
+    margin-top: ${tokens.spacing[8]};
+    gap: ${tokens.spacing[6]};
+  }
 `;
 
 const Desc = styled.p`
@@ -89,10 +108,16 @@ const Desc = styled.p`
   ${({ theme }) => theme.typography.Headline['KR-H3']}
   text-align: center;
   margin-bottom: ${tokens.spacing[2]};
+  word-break: keep-all;
+
+  @media (max-width: 768px) {
+    font-size: 1.125rem;
+  }
 `;
 
 const GoogleButton = styled.button`
-  width: 320px;
+  width: 100%;
+  max-width: 320px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -103,7 +128,7 @@ const GoogleButton = styled.button`
   background-color: ${({ theme }) => theme.colors.surface.primary};
   ${({ theme }) => theme.typography.Title['KR-Small']}
   color: ${({ theme }) => theme.colors.text.primary};
-  transition: background-color ${tokens.transition.fast};
+  transition: all ${tokens.transition.fast};
   box-shadow: ${tokens.shadows[1]};
 
   &:hover {

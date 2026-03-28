@@ -284,7 +284,7 @@ const Overlay = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 200;
+  z-index: 1000;
   padding: ${({ theme }) => theme.spacing[5]};
 `;
 
@@ -298,6 +298,9 @@ const Modal = styled.div`
   display: flex;
   flex-direction: column;
   box-shadow: ${({ theme }) => theme.shadows[3]};
+  @media (max-width: 504px) {
+    max-height: 80vh;
+  }
 `;
 
 const ModalHeader = styled.div`

@@ -2,7 +2,8 @@ import { useState } from 'react';
 import styled from 'styled-components';
 import Header from '../components/common/Header';
 import Footer from '../components/common/Footer';
-
+import { TAGS } from '../components/common/tags';
+import TagChip from '../components/common/TagChip';
 import Sidebar from '../components/common/Sidebar';
 import BookmarkGrid from '../components/bookmark/BookmarkGrid';
 import BookmarkModal from '../components/bookmark/BookmarkModal';
@@ -11,6 +12,10 @@ import Button from '../components/common/Button';
 import { MdAdd } from 'react-icons/md';
 import { useTeam } from '../hooks/useTeam';
 import Pagination from '../components/common/Pagination';
+import BottomNav from '../components/common/BottomNav';
+import ProfileModal from '../components/profile/ProfileModal';
+import CreateTeamModal from '../components/team/CreateTeamModal';
+import ManageTeamModal from '../components/team/ManageTeamModal';
 
 function MainPage({ user, onSignOut, onToggleTheme, isDark }) {
   const [selectedTags, setSelectedTags] = useState([]);
@@ -19,6 +24,9 @@ function MainPage({ user, onSignOut, onToggleTheme, isDark }) {
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [createTeamOpen, setCreateTeamOpen] = useState(false);
+  const [manageTeamOpen, setManageTeamOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 12;
 
@@ -111,6 +119,9 @@ function MainPage({ user, onSignOut, onToggleTheme, isDark }) {
         isDark={isDark}
         teams={teams}
         onTeamsUpdated={refetchTeams}
+        onOpenProfile={() => setProfileOpen(true)}
+        onOpenCreateTeam={() => setCreateTeamOpen(true)}
+        onOpenManageTeam={() => setManageTeamOpen(true)}
       />
       <Body>
         <Sidebar
@@ -122,6 +133,15 @@ function MainPage({ user, onSignOut, onToggleTheme, isDark }) {
           teams={teams}
         />
         <Main>
+          <MobileTagScroll>
+            <TagInner>
+              {TAGS.map((tag) => (
+                <TagChip key={tag} $tag={tag} $active={selectedTags.includes(tag)} onClick={() => handleTagToggle(tag)}>
+                  {tag}
+                </TagChip>
+              ))}
+            </TagInner>
+          </MobileTagScroll>
           <TopBar>
             <Count>{sorted.length} 개</Count>
             <Button id="add-bookmark-btn" onClick={() => setModalOpen(true)}>
@@ -143,7 +163,30 @@ function MainPage({ user, onSignOut, onToggleTheme, isDark }) {
           {sorted.length > 0 && <Pagination current={currentPage} total={totalPages} onPageChange={setCurrentPage} />}
         </Main>
       </Body>
-
+      <BottomNav filter={filter} onFilterChange={handleFilterChange} teams={teams} />
+      {user && (
+        <>
+          <ProfileModal
+            open={profileOpen}
+            onClose={() => setProfileOpen(false)}
+            user={user}
+            onUpdated={() => window.location.reload()}
+          />
+          <CreateTeamModal
+            open={createTeamOpen}
+            onClose={() => setCreateTeamOpen(false)}
+            userId={user.id}
+            onCreated={refetchTeams}
+          />
+          <ManageTeamModal
+            open={manageTeamOpen}
+            onClose={() => setManageTeamOpen(false)}
+            userId={user.id}
+            teams={teams}
+            onTeamsUpdated={refetchTeams}
+          />
+        </>
+      )}
       <BookmarkModal
         key={editTarget?.id || 'new'}
         open={modalOpen}
@@ -162,19 +205,18 @@ const Layout = styled.div`
   display: flex;
   flex-direction: column;
   background-color: ${({ theme }) => theme.colors.surface.primary};
-  min-width: 504px;
+  min-width: 100%;
 `;
 
 const Body = styled.div`
   padding: ${({ theme }) => theme.spacing[8]} ${({ theme }) => theme.spacing[6]} ${({ theme }) => theme.spacing[16]};
   display: flex;
   flex: 1;
-  position: sticky;
   @media (max-width: 1024px) {
     padding: ${({ theme }) => theme.spacing[8]} ${({ theme }) => theme.spacing[6]} ${({ theme }) => theme.spacing[14]};
   }
-  @media (max-width: 500px) {
-    padding: ${({ theme }) => theme.spacing[6]} ${({ theme }) => theme.spacing[4]}${({ theme }) => theme.spacing[10]};
+  @media (max-width: 504px) {
+    padding: 0;
   }
 `;
 
@@ -182,7 +224,35 @@ const Main = styled.main`
   border-left: 1px solid${({ theme }) => theme.colors.border.secondary};
   flex: 1;
   padding: ${({ theme }) => theme.spacing[5]};
-  overflow-y: auto;
+  @media (max-width: 504px) {
+    border-left: none;
+    padding: ${({ theme }) => theme.spacing[4]};
+    width: 100%;
+    margin-bottom: ${({ theme }) => theme.spacing[16]};
+  }
+`;
+
+const MobileTagScroll = styled.div`
+  display: none;
+  @media (max-width: 504px) {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+    padding: ${({ theme }) => theme.spacing[3]} 0;
+    margin-bottom: ${({ theme }) => theme.spacing[4]};
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    overflow-y: scroll;
+    .scroll-container::-webkit-scrollbar {
+      display: none;
+    }
+  }
+`;
+
+const TagInner = styled.div`
+  display: flex;
+  gap: ${({ theme }) => theme.spacing[3]};
+  margin: ${({ theme }) => theme.spacing[3]} 0;
 `;
 
 const TopBar = styled.div`
@@ -190,6 +260,20 @@ const TopBar = styled.div`
   align-items: center;
   justify-content: space-between;
   margin-bottom: ${({ theme }) => theme.spacing[8]};
+  position: sticky;
+  top: 88px;
+  z-index: 90;
+  background-color: ${({ theme }) => theme.colors.surface.primary};
+  padding: ${({ theme }) => theme.spacing[2]} 0;
+
+  @media (max-width: 504px) {
+    top: 120px;
+    margin-bottom: ${({ theme }) => theme.spacing[4]};
+    padding: ${({ theme }) => theme.spacing[3]} 0;
+    button {
+      ${({ theme }) => theme.typography.Label['KR-Midium']};
+    }
+  }
 `;
 
 const Count = styled.span`

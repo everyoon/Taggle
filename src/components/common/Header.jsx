@@ -1,21 +1,26 @@
 import { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
-import ProfileModal from '../profile/ProfileModal';
-import CreateTeamModal from '../team/CreateTeamModal';
-import ManageTeamModal from '../team/ManageTeamModal';
 import { MdSearch, MdPersonOutline, MdOutlineGroupAdd, MdOutlineGroups, MdLogout, MdClose } from 'react-icons/md';
 
-function Header({ user, search, onSearch, onToggleTheme, isDark, onSignOut, teams, onTeamsUpdated }) {
+function Header({
+  user,
+  search,
+  onSearch,
+  onToggleTheme,
+  isDark,
+  onSignOut,
+  onOpenProfile,
+  onOpenCreateTeam,
+  onOpenManageTeam,
+}) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false);
-  const [createTeamOpen, setCreateTeamOpen] = useState(false);
-  const [manageTeamOpen, setManageTeamOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  // 외부 클릭 시 닫기
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setDropdownOpen(false);
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setDropdownOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -26,7 +31,7 @@ function Header({ user, search, onSearch, onToggleTheme, isDark, onSignOut, team
       <Logo>
         <img src="/favicon.svg" alt="Taggle 심볼" />
       </Logo>
-      {/* 1. 로그인한 사용자에게만 검색창 노출 */}
+
       {user && (
         <SearchWrap>
           <IconInner>
@@ -51,10 +56,14 @@ function Header({ user, search, onSearch, onToggleTheme, isDark, onSignOut, team
           <ToggleThumb $isDark={isDark} />
         </Toggle>
 
-        {/* 2. 로그인한 사용자에게만 프로필 노출 */}
         {user && (
           <ProfileWrap ref={dropdownRef}>
-            <Avatar src={user.user_metadata?.avatar_url} alt="" onClick={() => setDropdownOpen((prev) => !prev)} />
+            <Avatar
+              src={user.user_metadata?.avatar_url}
+              alt="프로필"
+              onClick={() => setDropdownOpen((prev) => !prev)}
+            />
+
             {dropdownOpen && (
               <Dropdown>
                 <UserInfo>
@@ -68,17 +77,16 @@ function Header({ user, search, onSearch, onToggleTheme, isDark, onSignOut, team
                 <DropdownItem
                   onClick={() => {
                     setDropdownOpen(false);
-                    setProfileOpen(true);
+                    onOpenProfile();
                   }}
                 >
-                  <MdPersonOutline />
-                  프로필 관리
+                  <MdPersonOutline /> 프로필 관리
                 </DropdownItem>
                 <Divider />
                 <DropdownItem
                   onClick={() => {
                     setDropdownOpen(false);
-                    setCreateTeamOpen(true);
+                    onOpenCreateTeam();
                   }}
                 >
                   <MdOutlineGroupAdd />팀 만들기
@@ -87,7 +95,7 @@ function Header({ user, search, onSearch, onToggleTheme, isDark, onSignOut, team
                 <DropdownItem
                   onClick={() => {
                     setDropdownOpen(false);
-                    setManageTeamOpen(true);
+                    onOpenManageTeam();
                   }}
                 >
                   <MdOutlineGroups />팀 관리
@@ -100,42 +108,13 @@ function Header({ user, search, onSearch, onToggleTheme, isDark, onSignOut, team
                     onSignOut();
                   }}
                 >
-                  <MdLogout />
-                  로그아웃
+                  <MdLogout /> 로그아웃
                 </DropdownItem>
               </Dropdown>
             )}
           </ProfileWrap>
         )}
       </Right>
-
-      {user && (
-        <>
-          <ProfileModal
-            open={profileOpen}
-            onClose={() => setProfileOpen(false)}
-            user={user}
-            onUpdated={() => window.location.reload()}
-          />
-          {createTeamOpen && (
-            <CreateTeamModal
-              open={createTeamOpen}
-              onClose={() => setCreateTeamOpen(false)}
-              userId={user.id}
-              onCreated={onTeamsUpdated}
-            />
-          )}
-          {manageTeamOpen && (
-            <ManageTeamModal
-              open={manageTeamOpen}
-              onClose={() => setManageTeamOpen(false)}
-              userId={user.id}
-              teams={teams}
-              onTeamsUpdated={onTeamsUpdated}
-            />
-          )}
-        </>
-      )}
     </Wrap>
   );
 }
@@ -146,73 +125,96 @@ const Wrap = styled.header`
   z-index: 100;
   display: flex;
   align-items: center;
-  gap: ${({ theme }) => theme.spacing[4]};
-  padding: ${({ theme }) => theme.spacing[6]} ${({ theme }) => theme.spacing[8]};
+  padding: 0 ${({ theme }) => theme.spacing[8]};
   height: 88px;
   background-color: ${({ theme }) => theme.colors.surface.primary};
   border-bottom: 1px solid ${({ theme }) => theme.colors.border.secondary};
   box-shadow: ${({ theme }) => theme.shadows[1]};
+  gap: ${({ theme }) => theme.spacing[6]};
+
+  @media (max-width: 504px) {
+    flex-wrap: wrap;
+    height: auto;
+    padding: ${({ theme }) => theme.spacing[4]};
+    gap: ${({ theme }) => theme.spacing[4]};
+  }
 `;
 
 const Logo = styled.span`
-  display: inline-block;
-  margin-right: ${({ theme }) => theme.spacing[2]};
+  flex-shrink: 0;
+  img {
+    width: 32px;
+    height: 32px;
+  }
+
+  @media (max-width: 504px) {
+    order: 1;
+  }
 `;
 
 const SearchWrap = styled.div`
   display: flex;
-  width: 480px;
+  align-items: center;
+  flex: 1;
+  max-width: 480px;
   padding: ${({ theme }) => theme.spacing[2]} ${({ theme }) => theme.spacing[3]};
   border-radius: ${({ theme }) => theme.radius[2]};
   border: 1px solid ${({ theme }) => theme.colors.border.contrast};
   background-color: ${({ theme }) => theme.colors.surface.primary};
-  transition: border-color ${({ theme }) => theme.transition.fast};
   gap: ${({ theme }) => theme.spacing[1]};
-  align-items: center;
+
+  @media (max-width: 504px) {
+    order: 3;
+    width: 100%;
+    max-width: none;
+    flex: none;
+  }
 `;
-const IconInner = styled.div`
-  width: 24px;
-  height: 24px;
+
+const Right = styled.div`
   display: flex;
   align-items: center;
-  justify-content: center;
-  svg {
-    fill: ${({ theme }) => theme.colors.icon.contrast};
+  gap: ${({ theme }) => theme.spacing[4]};
+  margin-left: auto;
+
+  @media (max-width: 504px) {
+    order: 2;
+    margin-left: auto;
+    gap: ${({ theme }) => theme.spacing[2]};
   }
 `;
 
 const SearchInput = styled.input`
   width: 100%;
+  border: none;
+  background: transparent;
   color: ${({ theme }) => theme.colors.text.primary};
   ${({ theme }) => theme.typography.Body['KR-Small']}
+  &:focus {
+    outline: none;
+  }
   &::placeholder {
     color: ${({ theme }) => theme.colors.text.contrast};
+  }
+`;
+
+const IconInner = styled.div`
+  display: flex;
+  align-items: center;
+  svg {
+    fill: ${({ theme }) => theme.colors.icon.contrast};
+    font-size: 20px;
   }
 `;
 
 const ClearSearchButton = styled.button`
   display: flex;
   align-items: center;
-  justify-content: center;
-  margin-left: ${({ theme }) => theme.spacing[1]};
   color: ${({ theme }) => theme.colors.text.contrast};
-  transition: color ${({ theme }) => theme.transition.fast};
-
   svg {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
   }
-
-  &:hover {
-    color: ${({ theme }) => theme.colors.text.primary};
-  }
-`;
-
-const Right = styled.div`
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: ${({ theme }) => theme.spacing[3]};
 `;
 
 const Toggle = styled.button`
@@ -221,10 +223,11 @@ const Toggle = styled.button`
   border-radius: ${({ theme }) => theme.radius.full};
   background-color: ${({ $isDark }) => ($isDark ? '#222222' : '#FAFAFA')};
   position: relative;
-  transition: background-color ${({ theme }) => theme.transition.normal};
-  flex-shrink: 0;
   border: 2px solid ${({ $isDark }) => ($isDark ? '#FAFAFA' : '#222222')};
-  box-shadow: ${({ theme }) => theme.shadows[1]};
+  @media (max-width: 504px) {
+    width: 52px;
+    height: 26px;
+  }
 `;
 
 const ToggleThumb = styled.div`
@@ -235,11 +238,12 @@ const ToggleThumb = styled.div`
   height: 24px;
   border-radius: 50%;
   background-color: ${({ $isDark }) => ($isDark ? '#FAFAFA' : '#222222')};
-  transition: left ${({ theme }) => theme.transition.normal};
-`;
-
-const ProfileWrap = styled.div`
-  position: relative;
+  transition: left 0.2s;
+  @media (max-width: 504px) {
+    width: 18px;
+    height: 18px;
+    left: ${({ $isDark }) => ($isDark ? '28px' : '2px')};
+  }
 `;
 
 const Avatar = styled.img`
@@ -247,12 +251,15 @@ const Avatar = styled.img`
   height: 40px;
   border-radius: 50%;
   object-fit: cover;
-  cursor: pointer;
-  transition: opacity ${({ theme }) => theme.transition.fast};
-
-  &:hover {
-    opacity: 0.85;
+  border: 1px solid ${({ theme }) => theme.colors.border.secondary};
+  @media (max-width: 504px) {
+    width: 32px;
+    height: 32px;
   }
+`;
+
+const ProfileWrap = styled.div`
+  position: relative;
 `;
 
 const Dropdown = styled.div`
@@ -271,39 +278,28 @@ const Dropdown = styled.div`
 const UserInfo = styled.div`
   display: flex;
   align-items: center;
-  gap: ${({ theme }) => theme.spacing[2]};
-  padding: ${({ theme }) => theme.spacing[4]};
+  gap: 8px;
+  padding: 16px;
 `;
 
 const UserAvatar = styled.img`
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  object-fit: cover;
-  flex-shrink: 0;
 `;
 
 const UserDetail = styled.div`
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  gap: ${({ theme }) => theme.spacing[1]};
 `;
 
 const UserName = styled.span`
-  ${({ theme }) => theme.typography.Label['KR-Midium']}
-  color: ${({ theme }) => theme.colors.text.primary};
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  ${({ theme }) => theme.typography.Label['KR-Midium']} color: ${({ theme }) => theme.colors.text.primary};
 `;
 
 const UserEmail = styled.span`
-  ${({ theme }) => theme.typography.Caption['KR']}
-  color: ${({ theme }) => theme.colors.text.contrast};
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  ${({ theme }) => theme.typography.Caption['KR']} color: ${({ theme }) => theme.colors.text.contrast};
 `;
 
 const Divider = styled.div`
@@ -314,23 +310,17 @@ const Divider = styled.div`
 const DropdownItem = styled.button`
   display: flex;
   align-items: center;
-  gap: ${({ theme }) => theme.spacing[2]};
+  gap: 8px;
   width: 100%;
-  padding: ${({ theme }) => theme.spacing[3]} ${({ theme }) => theme.spacing[4]};
+  padding: 12px 16px;
   ${({ theme }) => theme.typography.Label['KR-Midium']}
   color: ${({ theme, $danger }) => ($danger ? theme.colors.text.negative : theme.colors.text.primary)};
-  transition: background-color ${({ theme }) => theme.transition.fast};
-  text-align: left;
   &:hover {
-    background-color: ${({ theme }) => theme.colors.surface.secondary};
-  }
-  &:focus {
     background-color: ${({ theme }) => theme.colors.surface.secondary};
   }
   svg {
     width: 20px;
     height: 20px;
-    fill: ${({ theme, $danger }) => ($danger ? theme.colors.text.negative : theme.colors.text.primary)};
   }
 `;
 
