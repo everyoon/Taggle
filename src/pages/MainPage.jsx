@@ -30,11 +30,15 @@ function MainPage({ user, onSignOut, onToggleTheme, isDark }) {
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 12;
 
-  const { bookmarks, loading, addBookmark, updateBookmark, deleteBookmark, toggleFavorite } = useBookmarks(
-    user.id,
-    filter,
-    selectedTags,
-  );
+  const {
+    bookmarks,
+    loading,
+    addBookmark,
+    updateBookmark,
+    deleteBookmark,
+    toggleFavorite,
+    refetch: refetchBookmarks,
+  } = useBookmarks(user.id, filter, selectedTags);
 
   const handleSearch = (val) => {
     setSearch(val);
@@ -72,6 +76,11 @@ function MainPage({ user, onSignOut, onToggleTheme, isDark }) {
   const handleSubmit = async (form) => {
     if (editTarget) return await updateBookmark(editTarget.id, form);
     return await addBookmark(form);
+  };
+
+  const handleTeamsUpdated = async () => {
+    await refetchTeams();
+    await refetchBookmarks();
   };
 
   // 사이드 필터링
@@ -183,7 +192,7 @@ function MainPage({ user, onSignOut, onToggleTheme, isDark }) {
             onClose={() => setManageTeamOpen(false)}
             userId={user.id}
             teams={teams}
-            onTeamsUpdated={refetchTeams}
+            onTeamsUpdated={handleTeamsUpdated}
           />
         </>
       )}

@@ -86,6 +86,7 @@ function InvitePage({ user }) {
     });
 
     if (error) {
+      console.log('에러 상세:', error);
       alert('팀 참여에 실패했습니다.');
       setIsSubmitting(false);
     } else {

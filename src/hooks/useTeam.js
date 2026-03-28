@@ -144,20 +144,28 @@ export function useTeam(userId) {
     }
   };
 
-  // 5. 팀 나가기
   const leaveTeam = async (teamId) => {
-    const { error } = await supabase.from('team_members').delete().eq('team_id', teamId).eq('user_id', userId);
+    // 1. 해당 팀에서 내가 작성한 북마크 ID 조회
+    const { data: bookmarks } = await supabase
+      .from('bookmarks')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('team_id', teamId);
 
-    if (!error) {
-      setTeams((prev) => prev.filter((t) => t.id !== teamId));
-      return { success: true };
+    const bookmarkIds = bookmarks?.map((b) => b.id) ?? [];
+
+    // 2. bookmark_teams 삭제
+    if (bookmarkIds.length > 0) {
+      await supabase.from('bookmark_teams').delete().in('bookmark_id', bookmarkIds);
     }
-    return { success: false, error };
-  };
 
-  // 6. 팀 삭제
-  const deleteTeam = async (teamId) => {
-    const { error } = await supabase.from('teams').delete().eq('id', teamId);
+    // 3. 북마크 삭제
+    if (bookmarkIds.length > 0) {
+      await supabase.from('bookmarks').delete().in('id', bookmarkIds);
+    }
+
+    // 4. 팀 멤버에서 제거
+    const { error } = await supabase.from('team_members').delete().eq('team_id', teamId).eq('user_id', userId);
 
     if (!error) {
       setTeams((prev) => prev.filter((t) => t.id !== teamId));
@@ -169,6 +177,26 @@ export function useTeam(userId) {
   // 7. 팀원 내보내기
   const removeMember = async (teamId, targetUserId) => {
     try {
+      // 1. 해당 팀에서 멤버가 작성한 북마크 ID 조회
+      const { data: bookmarks } = await supabase
+        .from('bookmarks')
+        .select('id')
+        .eq('user_id', targetUserId)
+        .eq('team_id', teamId);
+
+      const bookmarkIds = bookmarks?.map((b) => b.id) ?? [];
+
+      // 2. bookmark_teams 삭제
+      if (bookmarkIds.length > 0) {
+        await supabase.from('bookmark_teams').delete().in('bookmark_id', bookmarkIds);
+      }
+
+      // 3. 북마크 삭제
+      if (bookmarkIds.length > 0) {
+        await supabase.from('bookmarks').delete().in('id', bookmarkIds);
+      }
+
+      // 4. 팀 멤버에서 제거
       const { error } = await supabase.from('team_members').delete().eq('team_id', teamId).eq('user_id', targetUserId);
       if (error) throw error;
       return { success: true, error: null };
@@ -176,6 +204,17 @@ export function useTeam(userId) {
       console.error('멤버 강퇴 실패:', err.message);
       return { success: false, error: err.message };
     }
+  };
+
+  // 6. 팀 삭제
+  const deleteTeam = async (teamId) => {
+    const { error } = await supabase.from('teams').delete().eq('id', teamId);
+
+    if (!error) {
+      setTeams((prev) => prev.filter((t) => t.id !== teamId));
+      return { success: true };
+    }
+    return { success: false, error };
   };
 
   return {

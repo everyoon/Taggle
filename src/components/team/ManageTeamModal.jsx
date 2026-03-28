@@ -153,7 +153,7 @@ function ManageTeamModal({ open, onClose, userId, teams = [], onTeamsUpdated }) 
   };
 
   const handleLeave = async () => {
-    if (!window.confirm(`'${selectedTeam.name}' 팀에서 나갈까요?`)) return;
+    if (!window.confirm(`'${selectedTeam.name}' 팀에서 나갈까요?\n팀으로 저장한 북마크는 삭제됩니다.`)) return;
     setProcessing(true);
     const { success } = await leaveTeam(selectedTeam.id);
     if (success) {
