@@ -10,6 +10,7 @@ const INITIAL_FORM = {
   url: '',
   title: '',
   description: '',
+  thumbnail_url: '',
   tags: [],
   visibility: 'private',
   selectedTeam: null,
@@ -33,6 +34,7 @@ const getInitialFormState = (target) => {
     url: target.url || target.link || '',
     title: target.title || '',
     description: target.description || target.desc || '',
+    thumbnail_url: target.thumbnail_url || target.image || '',
     tags: target.tags || [],
     visibility: target.visibility || 'private',
     selectedTeam: initialTeam,
@@ -94,6 +96,7 @@ function BookmarkModal({ open, onClose, onSubmit, editTarget, teams = [] }) {
       url: form.url,
       title: form.title,
       description: form.description,
+      thumbnail_url: form.thumbnail_url,
       tags: form.tags,
       visibility: form.visibility,
       selectedTeams: form.selectedTeam ? [form.selectedTeam] : [],
@@ -136,16 +139,31 @@ function BookmarkModal({ open, onClose, onSubmit, editTarget, teams = [] }) {
   };
 
   const handleUrlBlur = async () => {
-    if (!form.url || !form.url.startsWith('http')) return;
-    if (form.title) return;
+    if (!form.url) return;
+
+    try {
+      new URL(form.url);
+    } catch {
+      return;
+    }
+
+    if (form.title && form.thumbnail_url) return;
+
     setFetching(true);
-    const { title, thumbnail_url } = await fetchLinkPreview(form.url);
-    setForm((prev) => ({
-      ...prev,
-      title: title || prev.title,
-      thumbnail_url: thumbnail_url || prev.thumbnail_url,
-    }));
-    setFetching(false);
+
+    try {
+      const { title, thumbnail_url } = await fetchLinkPreview(form.url);
+
+      setForm((prev) => ({
+        ...prev,
+        title: prev.title || title || '',
+        thumbnail_url: prev.thumbnail_url || thumbnail_url || '',
+      }));
+    } catch (error) {
+      console.error('미리보기 데이터를 가져오는데 실패했습니다:', error);
+    } finally {
+      setFetching(false);
+    }
   };
 
   const isEdit = !!editTarget;
