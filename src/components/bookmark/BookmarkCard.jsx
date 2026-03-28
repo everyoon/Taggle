@@ -2,13 +2,13 @@ import { useState } from 'react';
 import styled from 'styled-components';
 import { FaStar, FaRegStar } from 'react-icons/fa';
 
-function BookmarkCard({ bookmark, currentUserId, onEdit, onDelete, onFavorite }) {
+function BookmarkCard({ bookmark, currentUserId, onEdit, onDelete, onFavorite, onAuthorClick }) {
   const isOwner = bookmark.user_id === currentUserId;
   const isShared = bookmark.visibility === 'shared';
   const [memoExpanded, setMemoExpanded] = useState(false);
 
   const authorName = bookmark.profiles?.name || '알 수 없음';
-  const teamName = bookmark.teams?.name; // 위에서 추가한 조인 데이터
+  const teamName = bookmark.teams?.name;
   const isLongMemo = bookmark.description && bookmark.description.length > 63;
 
   return (
@@ -70,7 +70,10 @@ function BookmarkCard({ bookmark, currentUserId, onEdit, onDelete, onFavorite })
         </InfoContents>
 
         <Footer>
-          <Who>
+          <Who
+            onClick={() => onAuthorClick && onAuthorClick(bookmark.user_id)}
+            title={`${authorName}의 북마크 모아보기`}
+          >
             {bookmark.profiles?.avatar_url ? (
               <AuthorImg src={bookmark.profiles.avatar_url} alt="" />
             ) : (
@@ -88,6 +91,7 @@ function BookmarkCard({ bookmark, currentUserId, onEdit, onDelete, onFavorite })
               )}
             </AuthorName>
           </Who>
+
           {isOwner && (
             <Actions>
               <ActionBtn onClick={() => onEdit(bookmark)}>편집</ActionBtn>
@@ -117,6 +121,7 @@ function getDomain(url) {
   }
 }
 
+// ... (다른 styled-components는 기존과 완벽히 동일합니다)
 const Card = styled.article`
   display: flex;
   flex-direction: column;
@@ -290,10 +295,18 @@ const Footer = styled.div`
   border-top: 1px solid ${({ theme }) => theme.colors.border.secondary};
 `;
 
-const Who = styled.div`
+const Who = styled.button`
   display: flex;
   align-items: center;
   gap: ${({ theme }) => theme.spacing[2]};
+  background: transparent;
+  border: none;
+  padding: 0;
+  transition: opacity ${({ theme }) => theme.transition.fast};
+
+  &:hover {
+    opacity: 0.7;
+  }
 `;
 
 const AuthorImg = styled.img`
