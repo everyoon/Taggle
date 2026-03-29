@@ -15,6 +15,8 @@ function BookmarkCard({ bookmark, currentUserId, onEdit, onDelete, onFavorite, o
   const domain = getDomain(bookmark.url);
   const faviconUrl = domain ? `https://www.google.com/s2/favicons?domain=${domain}&sz=128` : '';
 
+  const secureThumbnailUrl = bookmark.thumbnail_url?.replace(/^http:\/\//i, 'https://');
+
   const handleImageError = () => {
     if (imageStep === 'main') {
       setImageStep('favicon');
@@ -46,7 +48,7 @@ function BookmarkCard({ bookmark, currentUserId, onEdit, onDelete, onFavorite, o
           <ThumbPlaceholder>{bookmark.title}</ThumbPlaceholder>
         ) : (
           <ThumbImg
-            src={imageStep === 'main' ? bookmark.thumbnail_url : faviconUrl}
+            src={imageStep === 'main' ? secureThumbnailUrl : faviconUrl}
             alt="사이트 썸네일"
             $isFavicon={imageStep === 'favicon'}
             onError={handleImageError}
@@ -109,8 +111,17 @@ function BookmarkCard({ bookmark, currentUserId, onEdit, onDelete, onFavorite, o
 
         <Footer>
           <Who
-            onClick={() => onAuthorClick && onAuthorClick(bookmark.user_id)}
-            title={`${authorName}의 북마크 모아보기`}
+            as={onAuthorClick ? 'button' : 'div'}
+            onClick={(e) => {
+              if (!onAuthorClick) return;
+              e.preventDefault();
+              onAuthorClick({
+                id: bookmark.user_id,
+                name: authorName,
+                avatar: bookmark.profiles?.avatar_url,
+              });
+            }}
+            title={onAuthorClick ? `${authorName}의 북마크 모아보기` : ''}
           >
             {bookmark.profiles?.avatar_url ? (
               <AuthorImg src={bookmark.profiles.avatar_url} alt="" />
@@ -129,7 +140,6 @@ function BookmarkCard({ bookmark, currentUserId, onEdit, onDelete, onFavorite, o
               )}
             </AuthorName>
           </Who>
-
           {isOwner && (
             <Actions>
               <ActionBtn onClick={() => onEdit(bookmark)}>편집</ActionBtn>
@@ -166,6 +176,7 @@ const Card = styled.article`
   border: 1px solid ${({ theme }) => theme.colors.border.secondary};
   border-radius: ${({ theme }) => theme.radius[4]};
   overflow: hidden;
+  height: 100%;
   transition:
     box-shadow ${({ theme }) => theme.transition.normal},
     transform ${({ theme }) => theme.transition.normal};
@@ -188,15 +199,7 @@ const ThumbImg = styled.img`
   width: ${({ $isFavicon }) => ($isFavicon ? '64px' : '100%')};
   height: ${({ $isFavicon }) => ($isFavicon ? '64px' : '100%')};
   object-fit: ${({ $isFavicon }) => ($isFavicon ? 'contain' : 'cover')};
-
-  ${({ $isFavicon }) =>
-    $isFavicon &&
-    `
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-  `}
+  ${({ $isFavicon }) => $isFavicon && `position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);`}
 `;
 
 const ThumbPlaceholder = styled.div`
@@ -221,7 +224,7 @@ const ThumbTop = styled.div`
 
 const VisibilityBadge = styled.span`
   ${({ theme }) => theme.typography.Label['EN-Small']}
-  padding:  ${({ theme }) => theme.spacing[1]}  ${({ theme }) => theme.spacing[3]} 2px;
+  padding: ${({ theme }) => theme.spacing[1]} ${({ theme }) => theme.spacing[3]} 2px;
   border-radius: ${({ theme }) => theme.radius.full};
   background-color: ${({ $shared }) => ($shared ? '#34c759' : '#96CEFF')};
   color: ${({ theme }) => theme.colors.text.invert};
@@ -235,7 +238,6 @@ const FavBtn = styled.button`
   transition:
     transform ${({ theme }) => theme.transition.fast},
     color ${({ theme }) => theme.transition.fast};
-
   &:hover {
     transform: scale(1.2);
     color: #ffd700;
@@ -254,7 +256,7 @@ const InfoContents = styled.div`
   display: flex;
   flex-direction: column;
   gap: ${({ theme }) => theme.spacing[2]};
-  padding-bottom: ${({ theme }) => theme.spacing[4]};
+  padding-bottom: ${({ theme }) => theme.spacing[2]};
   flex: 1;
 `;
 
@@ -264,10 +266,10 @@ const Domain = styled.span`
 `;
 
 const TextInner = styled.div`
-  height: 100%;
   display: flex;
   flex-direction: column;
   gap: ${({ theme }) => theme.spacing[1]};
+  margin-bottom: ${({ theme }) => theme.spacing[2]};
 `;
 
 const Title = styled.a`
@@ -289,45 +291,41 @@ const Title = styled.a`
 const MemoWrap = styled.div`
   display: flex;
   flex-direction: column;
-  gap: ${({ theme }) => theme.spacing[2]};
 `;
 
 const Memo = styled.p`
   ${({ theme }) => theme.typography.Body['KR-Small']}
   color: ${({ theme }) => theme.colors.text.contrast};
-  width: 100%;
-  display: -webkit-box !important;
+  display: -webkit-box;
   -webkit-line-clamp: ${({ $expanded }) => ($expanded ? 'unset' : 2)};
   -webkit-box-orient: vertical;
-  overflow: ${({ $expanded }) => ($expanded ? 'visible' : 'hidden')};
+  overflow: hidden;
   white-space: pre-wrap;
   word-break: break-all;
-  flex: 1;
 `;
 
 const MoreBtn = styled.button`
-  display: flex;
-  justify-content: flex-end;
+  align-self: flex-end;
   ${({ theme }) => theme.typography.Caption['KR']}
   color: #bfbfbf;
   background: none;
   border: none;
   padding: 0;
-  transition: color ${({ theme }) => theme.transition.fast};
-
   &:hover {
     color: ${({ theme }) => theme.colors.text.primary};
   }
 `;
+
 const TagList = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: ${({ theme }) => theme.spacing[2]};
+  margin-top: auto;
 `;
 
 const TagChip = styled.span`
   ${({ theme }) => theme.typography.Label['EN-Small']}
-  padding: ${({ theme }) => theme.spacing[1]} ${({ theme }) => theme.spacing[3]};
+  padding: 2px 8px;
   border-radius: ${({ theme }) => theme.radius.full};
   background-color: ${({ theme, $tag }) => theme.colors.tag[$tag]?.bg ?? theme.colors.surface.secondary};
   color: ${({ theme, $tag }) => theme.colors.tag[$tag]?.text ?? theme.colors.text.contrast};
@@ -337,8 +335,10 @@ const Footer = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${({ theme }) => theme.spacing[3]} ${({ theme }) => theme.spacing[2]};
+  padding: ${({ theme }) => theme.spacing[3]} 0;
   border-top: 1px solid ${({ theme }) => theme.colors.border.secondary};
+  gap: ${({ theme }) => theme.spacing[2]};
+  min-height: 48px;
 `;
 
 const Who = styled.button`
@@ -348,11 +348,12 @@ const Who = styled.button`
   background: transparent;
   border: none;
   padding: 0;
-  transition: opacity ${({ theme }) => theme.transition.fast};
   min-width: 0;
+  flex: 1;
   text-align: left;
+  cursor: ${({ onClick }) => (onClick ? 'pointer' : 'default')};
   &:hover {
-    opacity: 0.7;
+    opacity: ${({ onClick }) => (onClick ? 0.7 : 1)};
   }
 `;
 
@@ -390,6 +391,7 @@ const AuthorName = styled.span`
   display: flex;
   align-items: center;
   min-width: 0;
+  flex: 1;
 `;
 
 const AuthorInitial = styled.div`
@@ -410,6 +412,7 @@ const Actions = styled.div`
   gap: ${({ theme }) => theme.spacing[1]};
   opacity: 0;
   transition: opacity ${({ theme }) => theme.transition.fast};
+  flex-shrink: 0;
 
   ${Card}:hover & {
     opacity: 1;
@@ -418,15 +421,12 @@ const Actions = styled.div`
 
 const ActionBtn = styled.button`
   ${({ theme }) => theme.typography.Label['KR-Small']}
-  padding: 3px 8px;
+  padding: 4px 8px;
   border-radius: ${({ theme }) => theme.radius[1]};
-  color: ${({ $danger }) => ($danger ? '#ff383c' : 'inherit')};
+  white-space: nowrap;
   color: ${({ theme, $danger }) => ($danger ? theme.colors.text.negative : theme.colors.text.contrast)};
-  transition: background-color ${({ theme }) => theme.transition.fast};
-
   &:hover {
     background-color: ${({ theme }) => theme.colors.surface.secondary};
   }
 `;
-
 export default BookmarkCard;
