@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from 'styled-components';
 import { lightTheme, darkTheme } from './styles/theme';
@@ -24,6 +24,19 @@ function App() {
       return next;
     });
   };
+
+  useEffect(() => {
+    if (user) {
+      const timer = setTimeout(() => {
+        if (window.location.href.includes('#')) {
+          const cleanUrl = window.location.pathname + window.location.search;
+          window.history.replaceState(null, '', cleanUrl);
+        }
+      }, 100);
+
+      return () => clearTimeout(timer);
+    }
+  }, [user]);
 
   if (loading) return null;
   return (
