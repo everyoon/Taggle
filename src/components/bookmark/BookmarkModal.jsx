@@ -215,7 +215,9 @@ function BookmarkModal({ open, onClose, onSubmit, editTarget, teams = [] }) {
               value={form.description}
               onChange={(e) => handleChange('description', e.target.value)}
               rows={4}
+              maxLength={300}
             />
+            <CharCount>{form.description.length} / 300자</CharCount>
           </Field>
           <Field>
             <Label>
@@ -416,6 +418,12 @@ const Textarea = styled.textarea`
   &:focus {
     border-color: ${({ theme }) => theme.colors.border.contrast};
   }
+`;
+const CharCount = styled.div`
+  ${({ theme }) => theme.typography.Caption['KR']}
+  color: ${({ theme }) => theme.colors.text.contrast};
+  text-align: right;
+  margin-top: -4px;
 `;
 
 const TagGrid = styled.div`

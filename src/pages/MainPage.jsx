@@ -92,8 +92,8 @@ function MainPage({ user, onSignOut, onToggleTheme, isDark }) {
         b.title?.toLowerCase().includes(q) ||
         b.description?.toLowerCase().includes(q) ||
         b.tags?.some((t) => t.toLowerCase().includes(q)) ||
-        b.url?.toLowerCase().includes(q);
-      b.profiles?.name?.toLowerCase().includes(q);
+        b.url?.toLowerCase().includes(q) ||
+        (b.profiles?.name || '').toLowerCase().includes(q);
       if (!hit) return false;
     }
 
