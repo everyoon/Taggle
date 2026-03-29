@@ -39,7 +39,7 @@ function Header({
           </IconInner>
           <SearchInput
             type="text"
-            placeholder="사이트, 설명, 태그를 검색하세요."
+            placeholder="사이트, 설명, 태그, 팀원 이름을 검색하세요."
             value={search}
             onChange={(e) => onSearch(e.target.value)}
           />
