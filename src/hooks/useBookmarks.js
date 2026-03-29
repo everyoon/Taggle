@@ -12,21 +12,22 @@ export function useBookmarks(userId, filter, selectedTags) {
         .from('bookmarks')
         .select(
           `
-          *,
-          profiles!user_id (name, avatar_url),
-          teams (name),
-          bookmark_teams (team_id)
-        `,
+        *,
+        profiles!user_id (name, avatar_url),
+        teams (name),
+        bookmark_teams (team_id)
+      `,
         )
         .order('created_at', { ascending: false });
 
-      // 서버 사이드 필터링
-      if (filter === 'teams') {
-        query = query.eq('visibility', 'shared');
+      if (filter === 'home' || !filter) {
+        query = query.eq('user_id', userId);
       } else if (filter === 'private') {
-        query = query.eq('visibility', 'private');
+        query = query.eq('user_id', userId).eq('visibility', 'private');
       } else if (filter === 'favorites') {
         query = query.eq('is_favorited', true);
+      } else if (filter === 'teams') {
+        query = query.eq('visibility', 'shared');
       } else if (filter && filter.startsWith('team_')) {
         const specificTeamId = filter.replace('team_', '');
         query = query.eq('team_id', specificTeamId);
@@ -51,7 +52,7 @@ export function useBookmarks(userId, filter, selectedTags) {
     } finally {
       setLoading(false);
     }
-  }, [filter, selectedTags]);
+  }, [filter, selectedTags, userId]);
 
   useEffect(() => {
     if (userId) fetchBookmarks();
