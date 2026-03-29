@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
 import { FaStar, FaRegStar } from 'react-icons/fa';
+import { TAGS } from '../common/tags';
 
 function BookmarkCard({ bookmark, currentUserId, onEdit, onDelete, onFavorite, onAuthorClick }) {
   const isOwner = bookmark.user_id === currentUserId;
@@ -95,11 +96,13 @@ function BookmarkCard({ bookmark, currentUserId, onEdit, onDelete, onFavorite, o
 
           {bookmark.tags?.length > 0 && (
             <TagList>
-              {bookmark.tags.map((tag) => (
-                <TagChip key={tag} $tag={tag}>
-                  {tag}
-                </TagChip>
-              ))}
+              {[...bookmark.tags]
+                .sort((a, b) => TAGS.indexOf(a) - TAGS.indexOf(b))
+                .map((tag) => (
+                  <TagChip key={tag} $tag={tag}>
+                    {tag}
+                  </TagChip>
+                ))}
             </TagList>
           )}
         </InfoContents>
