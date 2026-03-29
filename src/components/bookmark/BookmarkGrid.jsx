@@ -47,7 +47,18 @@ const EMPTY_CONFIG = {
   },
 };
 
-function BookmarkGrid({ bookmarks, loading, currentUserId, filter, search, hasTags, onEdit, onDelete, onFavorite }) {
+function BookmarkGrid({
+  bookmarks,
+  loading,
+  currentUserId,
+  filter,
+  search,
+  hasTags,
+  onEdit,
+  onDelete,
+  onFavorite,
+  onOpenCreateTeam,
+}) {
   const [selectedAuthorId, setSelectedAuthorId] = useState(null);
 
   const [prevFilter, setPrevFilter] = useState(filter);
@@ -98,7 +109,9 @@ function BookmarkGrid({ bookmarks, loading, currentUserId, filter, search, hasTa
               if (config.action === 'add') {
                 document.getElementById('add-bookmark-btn')?.click();
               } else if (config.action === 'team') {
-                alert('팀 생성 기능은 준비 중입니다!');
+                if (onOpenCreateTeam) {
+                  onOpenCreateTeam();
+                }
               }
             }}
           >

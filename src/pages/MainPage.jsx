@@ -169,6 +169,7 @@ function MainPage({ user, onSignOut, onToggleTheme, isDark }) {
             search={search} // 검색어 상태 전달
             hasTags={selectedTags.length > 0}
             bookmarks={paginatedBookmarks}
+            onOpenCreateTeam={() => setCreateTeamOpen(true)}
           />
           {sorted.length > 0 && <Pagination current={currentPage} total={totalPages} onPageChange={setCurrentPage} />}
         </Main>
