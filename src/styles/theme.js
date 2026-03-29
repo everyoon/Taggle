@@ -17,6 +17,7 @@ const palette = {
     Study: { bg: '#666F8E', text: '#A5B1D7' },
     App: { bg: '#CFFFDD', text: '#5EA272' },
     Web: { bg: '#CAF2F2', text: '#2CB7B7' },
+    Graphic: { bg: '#908EFF', text: '#373689' },
     Ref: { bg: '#E4CBEA', text: '#9B62A8' },
     Etc: { bg: '#FFFAE6', text: '#FFE16B' },
   },

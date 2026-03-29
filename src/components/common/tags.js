@@ -4,6 +4,7 @@ export const TAGS = [
   'Branding',
   'Color',
   'Figma',
+  'Graphic',
   'Icon',
   'Illustration',
   'Motion',
