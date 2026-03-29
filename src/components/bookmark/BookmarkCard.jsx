@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
 import { FaStar, FaRegStar } from 'react-icons/fa';
 
@@ -6,19 +6,52 @@ function BookmarkCard({ bookmark, currentUserId, onEdit, onDelete, onFavorite, o
   const isOwner = bookmark.user_id === currentUserId;
   const isShared = bookmark.visibility === 'shared';
   const [memoExpanded, setMemoExpanded] = useState(false);
-
+  const [imageStep, setImageStep] = useState(bookmark.thumbnail_url ? 'main' : 'favicon');
   const authorName = bookmark.profiles?.name || '알 수 없음';
   const teamName = bookmark.teams?.name;
-  const isLongMemo = bookmark.description && bookmark.description.length > 63;
+  const memoRef = useRef(null);
+  const [isOverflowing, setIsOverflowing] = useState(false);
+  const domain = getDomain(bookmark.url);
+  const faviconUrl = domain ? `https://www.google.com/s2/favicons?domain=${domain}&sz=128` : '';
+
+  const handleImageError = () => {
+    if (imageStep === 'main') {
+      setImageStep('favicon');
+    } else if (imageStep === 'favicon') {
+      setImageStep('fallback');
+    }
+  };
+
+  useEffect(() => {
+    const element = memoRef.current;
+    if (!element) return;
+
+    // 💡 ResizeObserver: 요소의 크기가 변할 때마다 비동기적으로 실행됨 (ESLint 에러 해결!)
+    const observer = new ResizeObserver(() => {
+      setIsOverflowing(element.scrollHeight > element.clientHeight);
+    });
+
+    observer.observe(element);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [bookmark.description]);
 
   return (
     <Card>
       <Thumb href={bookmark.url} target="_blank" rel="noopener noreferrer">
-        {bookmark.thumbnail_url ? (
-          <ThumbImg src={bookmark.thumbnail_url} alt="사이트 썸네일" />
-        ) : (
+        {imageStep === 'fallback' ? (
           <ThumbPlaceholder>{bookmark.title}</ThumbPlaceholder>
+        ) : (
+          <ThumbImg
+            src={imageStep === 'main' ? bookmark.thumbnail_url : faviconUrl}
+            alt="사이트 썸네일"
+            $isFavicon={imageStep === 'favicon'}
+            onError={handleImageError}
+          />
         )}
+
         <ThumbTop>
           <VisibilityBadge $shared={isShared}>{isShared ? 'Teams' : 'Private'}</VisibilityBadge>
           <FavBtn
@@ -35,15 +68,17 @@ function BookmarkCard({ bookmark, currentUserId, onEdit, onDelete, onFavorite, o
 
       <Body>
         <InfoContents>
-          <Domain>{getDomain(bookmark.url)}</Domain>
+          <Domain>{domain}</Domain>
           <TextInner>
             <Title href={bookmark.url} target="_blank" rel="noopener noreferrer">
               {bookmark.title}
             </Title>
             {bookmark.description && (
               <MemoWrap>
-                <Memo $expanded={memoExpanded}>{bookmark.description}</Memo>
-                {isLongMemo && (
+                <Memo ref={memoRef} $expanded={memoExpanded}>
+                  {bookmark.description}
+                </Memo>
+                {isOverflowing && (
                   <MoreBtn
                     onClick={(e) => {
                       e.preventDefault();
@@ -84,10 +119,10 @@ function BookmarkCard({ bookmark, currentUserId, onEdit, onDelete, onFavorite, o
                 <>
                   <TeamNameInFooter>{teamName}</TeamNameInFooter>
                   <Separator>·</Separator>
-                  {authorName}
+                  <AuthorText>{authorName}</AuthorText>
                 </>
               ) : (
-                authorName
+                <AuthorText>{authorName}</AuthorText>
               )}
             </AuthorName>
           </Who>
@@ -121,7 +156,6 @@ function getDomain(url) {
   }
 }
 
-// ... (다른 styled-components는 기존과 완벽히 동일합니다)
 const Card = styled.article`
   display: flex;
   flex-direction: column;
@@ -148,9 +182,18 @@ const Thumb = styled.a`
 `;
 
 const ThumbImg = styled.img`
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  width: ${({ $isFavicon }) => ($isFavicon ? '64px' : '100%')};
+  height: ${({ $isFavicon }) => ($isFavicon ? '64px' : '100%')};
+  object-fit: ${({ $isFavicon }) => ($isFavicon ? 'contain' : 'cover')};
+
+  ${({ $isFavicon }) =>
+    $isFavicon &&
+    `
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  `}
 `;
 
 const ThumbPlaceholder = styled.div`
@@ -303,7 +346,8 @@ const Who = styled.button`
   border: none;
   padding: 0;
   transition: opacity ${({ theme }) => theme.transition.fast};
-
+  min-width: 0;
+  text-align: left;
   &:hover {
     opacity: 0.7;
   }
@@ -314,16 +358,27 @@ const AuthorImg = styled.img`
   height: 24px;
   border-radius: 50%;
   object-fit: cover;
+  flex-shrink: 0;
 `;
 
 const TeamNameInFooter = styled.span`
   font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
 `;
 
 const Separator = styled.span`
   margin: 0 4px;
   color: ${({ theme }) => theme.colors.text.contrast};
   opacity: 0.5;
+  flex-shrink: 0;
+`;
+
+const AuthorText = styled.span`
+  white-space: nowrap;
+  flex-shrink: 0;
 `;
 
 const AuthorName = styled.span`
@@ -331,6 +386,7 @@ const AuthorName = styled.span`
   color: ${({ theme }) => theme.colors.text.contrast};
   display: flex;
   align-items: center;
+  min-width: 0;
 `;
 
 const AuthorInitial = styled.div`
@@ -343,6 +399,7 @@ const AuthorInitial = styled.div`
   align-items: center;
   justify-content: center;
   color: ${({ theme }) => theme.colors.text.contrast};
+  flex-shrink: 0;
 `;
 
 const Actions = styled.div`

@@ -2,23 +2,38 @@ import styled from 'styled-components';
 import { MdChevronLeft, MdChevronRight } from 'react-icons/md';
 
 function Pagination({ current, total, onPageChange }) {
-  const pages = Array.from({ length: total }, (_, i) => i + 1);
+  const PAGE_GROUP_SIZE = 5;
+
+  const currentGroup = Math.ceil(current / PAGE_GROUP_SIZE);
+
+  const startPage = (currentGroup - 1) * PAGE_GROUP_SIZE + 1;
+  const endPage = Math.min(currentGroup * PAGE_GROUP_SIZE, total);
+
+  const pages = Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i);
+
+  const handlePageChange = (newPage) => {
+    onPageChange(newPage);
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    });
+  };
 
   return (
     <Container>
-      <ArrowBtn disabled={current === 1} onClick={() => onPageChange(current - 1)}>
+      <ArrowBtn disabled={current === 1} onClick={() => handlePageChange(current - 1)}>
         <MdChevronLeft size={20} />
       </ArrowBtn>
 
       <PageList>
         {pages.map((p) => (
-          <PageBtn key={p} $active={p === current} onClick={() => onPageChange(p)}>
+          <PageBtn key={p} $active={p === current} onClick={() => handlePageChange(p)}>
             {p}
           </PageBtn>
         ))}
       </PageList>
 
-      <ArrowBtn disabled={current === total} onClick={() => onPageChange(current + 1)}>
+      <ArrowBtn disabled={current === total} onClick={() => handlePageChange(current + 1)}>
         <MdChevronRight size={20} />
       </ArrowBtn>
     </Container>
