@@ -1,6 +1,5 @@
-import { useState } from 'react';
 import styled from 'styled-components';
-import { MdAdd, MdOutlineGroups, MdSearchOff, MdLabelOff, MdClose } from 'react-icons/md';
+import { MdAdd, MdOutlineGroups, MdSearchOff, MdLabelOff } from 'react-icons/md';
 import { FaRegStar } from 'react-icons/fa';
 import BookmarkCard from './BookmarkCard';
 import Button from '../common/Button';
@@ -58,16 +57,8 @@ function BookmarkGrid({
   onDelete,
   onFavorite,
   onOpenCreateTeam,
+  onAuthorClick,
 }) {
-  const [selectedAuthorId, setSelectedAuthorId] = useState(null);
-
-  const [prevFilter, setPrevFilter] = useState(filter);
-
-  if (filter !== prevFilter) {
-    setPrevFilter(filter);
-    setSelectedAuthorId(null);
-  }
-
   if (loading)
     return (
       <Empty>
@@ -75,18 +66,12 @@ function BookmarkGrid({
       </Empty>
     );
 
-  const displayedBookmarks = selectedAuthorId ? bookmarks.filter((bm) => bm.user_id === selectedAuthorId) : bookmarks;
-
-  const selectedAuthorName = selectedAuthorId
-    ? bookmarks.find((bm) => bm.user_id === selectedAuthorId)?.profiles?.name || '알 수 없음'
-    : '';
-
-  if (displayedBookmarks.length === 0) {
+  if (bookmarks.length === 0) {
     let status = filter;
 
     if (search) status = 'search';
     else if (hasTags) status = 'tags';
-    else if (filter.startsWith('team_')) status = 'teams';
+    else if (filter && filter.startsWith('team_')) status = 'teams';
 
     const config = EMPTY_CONFIG[status] || EMPTY_CONFIG.home;
     const IconComponent = config.icon;
@@ -124,83 +109,28 @@ function BookmarkGrid({
   }
 
   return (
-    <>
-      {selectedAuthorId && (
-        <FilterBadgeWrap>
-          <FilterBadge
-            onClick={() => {
-              setSelectedAuthorId(null);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-          >
-            <strong>{selectedAuthorName}</strong>님의 북마크 모아보기
-            <MdClose size={16} />
-          </FilterBadge>
-        </FilterBadgeWrap>
-      )}
-
-      <Grid>
-        {displayedBookmarks.map((bookmark) => (
-          <BookmarkCard
-            key={bookmark.id}
-            bookmark={bookmark}
-            currentUserId={currentUserId}
-            onEdit={onEdit}
-            onDelete={onDelete}
-            onFavorite={onFavorite}
-            onAuthorClick={(clickedUserId) => {
-              setSelectedAuthorId((prev) => (prev === clickedUserId ? null : clickedUserId));
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-          />
-        ))}
-      </Grid>
-    </>
+    <Grid>
+      {bookmarks.map((bookmark) => (
+        <BookmarkCard
+          key={bookmark.id}
+          bookmark={bookmark}
+          currentUserId={currentUserId}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          onFavorite={onFavorite}
+          onAuthorClick={onAuthorClick}
+        />
+      ))}
+    </Grid>
   );
 }
-
-const FilterBadgeWrap = styled.div`
-  margin-bottom: ${({ theme }) => theme.spacing[4]};
-  display: flex;
-  align-items: center;
-`;
-
-const FilterBadge = styled.button`
-  display: inline-flex;
-  align-items: center;
-  gap: ${({ theme }) => theme.spacing[1]};
-  padding: ${({ theme }) => theme.spacing[2]} ${({ theme }) => theme.spacing[4]};
-  background-color: ${({ theme }) => theme.colors.surface.secondary};
-  border: 1px solid ${({ theme }) => theme.colors.border.secondary};
-  border-radius: ${({ theme }) => theme.radius.full};
-  ${({ theme }) => theme.typography.Body['KR-Small']};
-  color: ${({ theme }) => theme.colors.text.primary};
-  cursor: pointer;
-  transition: background-color ${({ theme }) => theme.transition.fast};
-
-  strong {
-    font-weight: 600;
-  }
-
-  svg {
-    margin-left: ${({ theme }) => theme.spacing[1]};
-    color: ${({ theme }) => theme.colors.text.contrast};
-  }
-
-  &:hover {
-    background-color: ${({ theme }) => theme.colors.border.secondary};
-
-    svg {
-      color: ${({ theme }) => theme.colors.text.primary};
-    }
-  }
-`;
 
 const Grid = styled.div`
   display: grid;
   gap: ${({ theme }) => theme.spacing[4]};
   grid-template-columns: 1fr;
   gap: ${({ theme }) => theme.spacing[2]};
+  padding: 0 ${({ theme }) => theme.spacing[1]};
 
   @media (min-width: 768px) {
     grid-template-columns: repeat(2, 1fr);

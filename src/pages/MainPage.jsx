@@ -28,6 +28,7 @@ function MainPage({ user, onSignOut, onToggleTheme, isDark }) {
   const [createTeamOpen, setCreateTeamOpen] = useState(false);
   const [manageTeamOpen, setManageTeamOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedAuthor, setSelectedAuthor] = useState(null);
   const ITEMS_PER_PAGE = 12;
 
   const {
@@ -48,6 +49,7 @@ function MainPage({ user, onSignOut, onToggleTheme, isDark }) {
   const handleFilterChange = (newFilter) => {
     setFilter(newFilter);
     setCurrentPage(1);
+    setSelectedAuthor(null);
   };
 
   const handleTagToggle = (tag) => {
@@ -83,9 +85,47 @@ function MainPage({ user, onSignOut, onToggleTheme, isDark }) {
     await refetchBookmarks();
   };
 
+  const handleAuthorClick = (authorData) => {
+    // 1. 현재 클릭한 유저의 ID를 먼저 파악합니다.
+    const clickedId = typeof authorData === 'string' ? authorData : authorData.id;
+
+    // 2. 이미 선택된 유저를 다시 눌렀다면 -> 필터 해제
+    if (selectedAuthor?.id === clickedId) {
+      setSelectedAuthor(null);
+    }
+    // 3. 새로운 유저를 눌렀다면 -> 필터 적용
+    else {
+      if (typeof authorData === 'string') {
+        const targetBookmark = bookmarks.find((b) => b.user_id === authorData);
+        setSelectedAuthor({
+          id: authorData,
+          name: targetBookmark?.profiles?.name || '알 수 없음',
+          avatar: targetBookmark?.profiles?.avatar_url,
+        });
+      } else {
+        setSelectedAuthor(authorData);
+      }
+    }
+
+    // 4. 페이지 초기화 및 상단 이동
+    setCurrentPage(1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const teamAuthors = Array.from(
+    new Map(
+      bookmarks.map((b) => [
+        b.user_id,
+        { id: b.user_id, name: b.profiles?.name || '알 수 없음', avatar: b.profiles?.avatar_url },
+      ]),
+    ).values(),
+  );
+
   // 사이드 필터링
   const filtered = bookmarks.filter((b) => {
-    // 1. 검색어 필터
+    if (selectedAuthor && b.user_id !== selectedAuthor.id) return false;
+
+    // 1. 검색어 필터 (기존 로직)
     if (search) {
       const q = search.toLowerCase();
       const hit =
@@ -152,13 +192,37 @@ function MainPage({ user, onSignOut, onToggleTheme, isDark }) {
               ))}
             </TagInner>
           </MobileTagScroll>
-          <TopBar>
-            <Count>{sorted.length} 개</Count>
-            <Button id="add-bookmark-btn" onClick={() => setModalOpen(true)}>
-              <MdAdd />
-              북마크 추가하기
-            </Button>
-          </TopBar>
+          <StickySection>
+            <TopBar>
+              <TopLeft>
+                <Count>{sorted.length} 개</Count>
+                {filter.startsWith('team_') && teamAuthors.length > 0 && (
+                  <AvatarGroup>
+                    {teamAuthors.map((author) => (
+                      <AvatarCircle
+                        key={author.id}
+                        src={author.avatar || '기본프로필이미지경로.png'}
+                        alt={author.name}
+                        title={`${author.name} 님의 북마크 보기`}
+                        onClick={() => handleAuthorClick(author)}
+                      />
+                    ))}
+                  </AvatarGroup>
+                )}
+              </TopLeft>
+              <AddBookmarkButton id="add-bookmark-btn" onClick={() => setModalOpen(true)}>
+                <MdAdd size={20} />
+                <span>북마크 추가하기</span>
+              </AddBookmarkButton>
+            </TopBar>
+            {selectedAuthor && (
+              <BadgeWrapper>
+                <ActiveFilterBadge onClick={() => setSelectedAuthor(null)}>
+                  {selectedAuthor.name} 님의 북마크 모아보기 ✕
+                </ActiveFilterBadge>
+              </BadgeWrapper>
+            )}
+          </StickySection>
           <BookmarkGrid
             loading={loading}
             currentUserId={user.id}
@@ -166,10 +230,11 @@ function MainPage({ user, onSignOut, onToggleTheme, isDark }) {
             onEdit={handleEdit}
             onDelete={deleteBookmark}
             onFavorite={toggleFavorite}
-            search={search} // 검색어 상태 전달
+            search={search}
             hasTags={selectedTags.length > 0}
             bookmarks={paginatedBookmarks}
             onOpenCreateTeam={() => setCreateTeamOpen(true)}
+            onAuthorClick={filter === 'home' || filter === 'private' ? null : handleAuthorClick}
           />
           {sorted.length > 0 && <Pagination current={currentPage} total={totalPages} onPageChange={setCurrentPage} />}
         </Main>
@@ -266,30 +331,106 @@ const TagInner = styled.div`
   margin: ${({ theme }) => theme.spacing[3]} 0;
 `;
 
-const TopBar = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: ${({ theme }) => theme.spacing[8]};
+const StickySection = styled.div`
   position: sticky;
   top: 88px;
   z-index: 90;
   background-color: ${({ theme }) => theme.colors.surface.primary};
-  padding: ${({ theme }) => theme.spacing[2]} 0;
+  padding-bottom: ${({ theme }) => theme.spacing[2]};
 
   @media (max-width: 504px) {
     top: 120px;
-    margin-bottom: ${({ theme }) => theme.spacing[4]};
+  }
+`;
+
+const TopBar = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: ${({ theme }) => theme.spacing[2]} 0;
+  margin-bottom: ${({ theme }) => theme.spacing[2]};
+
+  @media (max-width: 504px) {
     padding: ${({ theme }) => theme.spacing[3]} 0;
-    button {
-      ${({ theme }) => theme.typography.Label['KR-Midium']};
-    }
+  }
+`;
+
+const TopLeft = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing[4]};
+`;
+
+const AvatarGroup = styled.div`
+  display: flex;
+  align-items: center;
+  padding-left: ${({ theme }) => theme.spacing[2]};
+`;
+
+const AvatarCircle = styled.img`
+  background-color: ${({ theme }) => theme.colors.surface.secondary};
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid ${({ theme }) => theme.colors.surface.primary};
+  margin-left: -${({ theme }) => theme.spacing[4]};
+  cursor: pointer;
+  position: relative;
+  transition:
+    z-index 0.2s,
+    transform 0.2s;
+
+  &:first-child {
+    margin-left: 0;
+  }
+
+  &:hover {
+    z-index: 10;
+    transform: translateY(-2px);
+  }
+`;
+
+const BadgeWrapper = styled.div`
+  padding-bottom: ${({ theme }) => theme.spacing[4]};
+`;
+
+const ActiveFilterBadge = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing[2]};
+  padding: ${({ theme }) => theme.spacing[2]} ${({ theme }) => theme.spacing[3]};
+  border-radius: ${({ theme }) => theme.radius[5]};
+  background-color: ${({ theme }) => theme.colors.surface.secondary};
+  color: ${({ theme }) => theme.colors.text.primary};
+  ${({ theme }) => theme.typography.Label['KR-Midium']}
+  transition: background-color ${({ theme }) => theme.transition.fast};
+
+  &:hover {
+    background-color: ${({ theme }) => theme.colors.border.secondary};
   }
 `;
 
 const Count = styled.span`
   ${({ theme }) => theme.typography.Label['KR-Midium']};
   color: ${({ theme }) => theme.colors.text.primary};
+`;
+
+const AddBookmarkButton = styled(Button)`
+  @media (max-width: 504px) {
+    padding: ${({ theme }) => theme.spacing[2]};
+    border-radius: ${({ theme }) => theme.spacing[2]};
+    min-width: 40px;
+    height: 40px;
+    justify-content: center;
+
+    span {
+      display: none;
+    }
+    svg {
+      margin: 0;
+    }
+  }
 `;
 
 export default MainPage;
