@@ -2,7 +2,7 @@ import { useState } from 'react';
 import styled from 'styled-components';
 import { MdOutlineHome, MdOutlineGroups, MdPersonOutline, MdArrowDropDown } from 'react-icons/md';
 import { FaRegStar } from 'react-icons/fa';
-import TeamAvatar from './TeamAvatar';
+import TeamAvatar from '../team/TeamAvatar';
 import { TAGS } from './tags';
 import TagChip from './TagChip';
 import { getStorageUrl } from '../../lib/getStorageUrl';

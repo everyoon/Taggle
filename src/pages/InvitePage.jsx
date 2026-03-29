@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { supabase } from '../lib/supabase';
 import Button from '../components/common/Button';
-import TeamAvatar from '../components/common/TeamAvatar';
+import TeamAvatar from '../components/team/TeamAvatar';
 import { getStorageUrl } from '../lib/getStorageUrl';
 
 function InvitePage({ user }) {

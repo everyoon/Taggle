@@ -2,7 +2,7 @@ import { useState } from 'react';
 import styled from 'styled-components';
 import { MdOutlineHome, MdOutlineGroups, MdPersonOutline, MdClose } from 'react-icons/md';
 import { FaRegStar } from 'react-icons/fa';
-import TeamAvatar from '../common/TeamAvatar'; // 기존에 있던 아바타 컴포넌트 활용
+import TeamAvatar from '../team/TeamAvatar';
 
 const BottomNav = ({ filter, onFilterChange, teams = [] }) => {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
