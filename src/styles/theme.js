@@ -18,7 +18,13 @@ const palette = {
     App: { bg: '#CFFFDD', text: '#5EA272' },
     Web: { bg: '#CAF2F2', text: '#2CB7B7' },
     Graphic: { bg: '#908EFF', text: '#373689' },
+    DesignSystem: { bg: '#FDE8F5', text: '#F76BC4' },
+    '3D': { bg: '#498D71', text: '#E2F7ED' },
     Ref: { bg: '#E4CBEA', text: '#9B62A8' },
+    Font: { bg: '#485994', text: '#AEBCEB' },
+    Coding: { bg: '#F48484', text: '#951919' },
+    Image: { bg: '#FFFAE6', text: '#FFE16B' },
+    Mockup: { bg: '#E187ED', text: '#FAEAFC' },
     Etc: { bg: '#FFFAE6', text: '#FFE16B' },
   },
 };
