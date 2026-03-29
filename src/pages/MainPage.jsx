@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import Header from '../components/common/Header';
 import Footer from '../components/common/Footer';
@@ -40,6 +40,20 @@ function MainPage({ user, onSignOut, onToggleTheme, isDark }) {
     toggleFavorite,
     refetch: refetchBookmarks,
   } = useBookmarks(user.id, filter, selectedTags);
+
+  useEffect(() => {
+    const isAnyModalOpen = modalOpen || profileOpen || createTeamOpen || manageTeamOpen;
+
+    if (isAnyModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [modalOpen, profileOpen, createTeamOpen, manageTeamOpen]);
 
   const handleSearch = (val) => {
     setSearch(val);
