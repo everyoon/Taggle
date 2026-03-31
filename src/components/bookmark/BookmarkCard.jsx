@@ -81,7 +81,7 @@ function BookmarkCard({ bookmark, currentUserId, onEdit, onDelete, onFavorite, o
                 <Memo ref={memoRef} $expanded={memoExpanded}>
                   {bookmark.description}
                 </Memo>
-                {isOverflowing && (
+                {(isOverflowing || memoExpanded) && (
                   <MoreBtn
                     onClick={(e) => {
                       e.preventDefault();
