@@ -151,10 +151,10 @@ function MainPage({ user, onSignOut, onToggleTheme, isDark }) {
       if (!hit) return false;
     }
 
-    // 2. 태그 OR 필터
+    // 2. 태그 AND 필터
     if (selectedTags.length > 0) {
-      const hasTag = selectedTags.some((t) => b.tags?.includes(t));
-      if (!hasTag) return false;
+      const hasAllTags = selectedTags.every((t) => b.tags?.includes(t));
+      if (!hasAllTags) return false;
     }
 
     return true;
